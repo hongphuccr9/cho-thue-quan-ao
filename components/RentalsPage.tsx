@@ -237,10 +237,11 @@ export const RentalsPage: React.FC<RentalsPageProps> = ({ rentals, customers, cl
       
       const combined = new Map<number, ClothingItem>();
       
-      itemsInThisRental.forEach(id => {
+      // FIX: Use for...of loop to avoid TypeScript type inference issues with Set.forEach.
+      for (const id of itemsInThisRental) {
         const item = clothingMap.get(id);
         if (item) combined.set(id, item);
-      });
+      }
       
       availableNowItems.forEach(item => {
         combined.set(item.id, item);

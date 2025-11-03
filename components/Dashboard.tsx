@@ -209,7 +209,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ clothingItems, customers, 
     <div className="space-y-8">
       <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Bảng Điều Khiển</h1>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, index) => {
           const isClickable = !!stat.navTarget;
           // Use a button for clickable cards for accessibility, otherwise use a div
