@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import type { Customer, Rental, ClothingItem } from '../types';
 import { Card } from './shared/Card';
 import { Modal } from './shared/Modal';
@@ -27,6 +27,10 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({ customers, addCust
   const initialEditFormState = { name: '', phone: '', address: '' };
   const [editForm, setEditForm] = useState(initialEditFormState);
   const { user } = useAuth();
+
+  const customersWithRentals = useMemo(() => {
+    return new Set(rentals.map(r => r.customerId));
+  }, [rentals]);
 
   useEffect(() => {
     if (editingCustomer) {
@@ -71,12 +75,20 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({ customers, addCust
 
   const handleDeleteConfirm = async () => {
     if (customerToDelete) {
+      // Kiểm tra chủ động để cung cấp trải nghiệm người dùng tốt hơn.
+      const hasRentals = rentals.some(r => r.customerId === customerToDelete.id);
+      if (hasRentals) {
+        setDeleteError(`Không thể xóa khách hàng "${customerToDelete.name}" vì họ đã có lịch sử thuê đồ.`);
+        return;
+      }
+      
       try {
         await deleteCustomer(customerToDelete.id);
         closeDeleteModal();
       } catch (error: any) {
         console.error("Delete customer error:", error);
-        setDeleteError(`Không thể xóa khách hàng "${customerToDelete.name}". Có thể họ đã có lịch sử thuê đồ.`);
+        // Hiển thị thông báo lỗi cụ thể hơn từ lớp cơ sở dữ liệu.
+        setDeleteError(`Lỗi: ${error.message}`);
       }
     }
   };
@@ -136,7 +148,9 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({ customers, addCust
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {customers.map(customer => (
+                {customers.map(customer => {
+                  const hasRentals = customersWithRentals.has(customer.id);
+                  return (
                   <tr key={customer.id} onClick={() => setSelectedCustomer(customer)} className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-150">
                     <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
@@ -164,7 +178,9 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({ customers, addCust
                                     e.stopPropagation();
                                     setCustomerToDelete(customer);
                                 }}
-                                className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-200 font-semibold"
+                                disabled={hasRentals}
+                                title={hasRentals ? "Không thể xóa khách hàng có lịch sử thuê" : "Xóa khách hàng"}
+                                className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-200 font-semibold disabled:text-gray-400 dark:disabled:text-gray-500 disabled:cursor-not-allowed disabled:hover:text-gray-400"
                             >
                                 Xóa
                             </button>
@@ -172,7 +188,7 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({ customers, addCust
                       )}
                     </td>
                   </tr>
-                ))}
+                )})}
               </tbody>
             </table>
         </div>

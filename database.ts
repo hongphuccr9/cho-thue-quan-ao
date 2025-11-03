@@ -36,6 +36,12 @@ export const addClothingItem = async (item: Omit<ClothingItem, 'id'>): Promise<C
     return data;
 };
 
+export const addMultipleClothingItems = async (items: Omit<ClothingItem, 'id'>[]): Promise<ClothingItem[]> => {
+    const { data, error } = await supabase.from('clothing_items').insert(items).select();
+    if (error) throw new Error(error.message);
+    return data;
+};
+
 export const updateClothingItem = async (item: ClothingItem): Promise<ClothingItem> => {
     const { data, error } = await supabase.from('clothing_items').update(item).eq('id', item.id).select().single();
     if (error) throw new Error(error.message);
@@ -43,8 +49,17 @@ export const updateClothingItem = async (item: ClothingItem): Promise<ClothingIt
 };
 
 export const deleteClothingItem = async (id: number): Promise<void> => {
-    const { error } = await supabase.from('clothing_items').delete().eq('id', id);
-    if (error) throw new Error(error.message);
+    const { error, count } = await supabase.from('clothing_items').delete({ count: 'exact' }).eq('id', id);
+    if (error) {
+        // Ràng buộc khóa ngoại không được mong đợi dựa trên schema, nhưng đây là một biện pháp bảo vệ tốt.
+        if (error.code === '23503') { 
+            throw new Error('Không thể xóa sản phẩm vì nó được tham chiếu trong một lượt thuê.');
+        }
+        throw new Error(error.message);
+    }
+    if (count === 0) {
+        throw new Error("Sản phẩm không tồn tại hoặc bạn không có quyền xóa.");
+    }
 };
 
 
@@ -69,10 +84,16 @@ export const updateCustomer = async (customer: Customer): Promise<Customer> => {
 };
 
 export const deleteCustomer = async (id: number): Promise<void> => {
-    // Supabase will throw a foreign key constraint error if the customer has rentals,
-    // which will be caught in the component.
-    const { error } = await supabase.from('customers').delete().eq('id', id);
-    if (error) throw new Error(error.message);
+    const { error, count } = await supabase.from('customers').delete({ count: 'exact' }).eq('id', id);
+    if (error) {
+        if (error.code === '23503') { // foreign_key_violation
+            throw new Error('Không thể xóa khách hàng này vì họ có lịch sử thuê đồ.');
+        }
+        throw new Error(error.message);
+    }
+    if (count === 0) {
+        throw new Error("Khách hàng không tồn tại hoặc bạn không có quyền xóa.");
+    }
 };
 
 

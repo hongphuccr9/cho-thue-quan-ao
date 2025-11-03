@@ -59,6 +59,16 @@ const MainLayout: React.FC<{user: User}> = ({ user }) => {
   React.useEffect(() => {
     fetchData();
   }, [fetchData]);
+  
+  const itemsWithRentalHistory = React.useMemo(() => {
+    const itemIds = new Set<number>();
+    rentals.forEach(rental => {
+        rental.rentedItems.forEach(({ itemId }) => {
+            itemIds.add(itemId);
+        });
+    });
+    return itemIds;
+  }, [rentals]);
 
   const activeRentals = React.useMemo(() => rentals.filter(r => !r.returnDate), [rentals]);
   
@@ -75,6 +85,12 @@ const MainLayout: React.FC<{user: User}> = ({ user }) => {
   const addClothingItem = async (item: Omit<ClothingItem, 'id'>) => {
     const newItem = await db.addClothingItem(item);
     setClothingItems(prev => [...prev, newItem]);
+  };
+  
+  const addMultipleClothingItems = async (items: Omit<ClothingItem, 'id'>[]) => {
+    if (items.length === 0) return;
+    const newItems = await db.addMultipleClothingItems(items);
+    setClothingItems(prev => [...prev, ...newItems]);
   };
 
   const updateClothingItem = async (itemToUpdate: ClothingItem) => {
@@ -175,7 +191,7 @@ const MainLayout: React.FC<{user: User}> = ({ user }) => {
       case 'dashboard':
         return <Dashboard clothingItems={clothingItems} customers={customers} rentals={rentals} rentedItemCounts={rentedItemCounts}/>;
       case 'clothing':
-        return <ClothingPage clothingItems={clothingItems} addClothingItem={addClothingItem} rentedItemCounts={rentedItemCounts} updateClothingItem={updateClothingItem} deleteClothingItem={deleteClothingItem} />;
+        return <ClothingPage clothingItems={clothingItems} addClothingItem={addClothingItem} addMultipleClothingItems={addMultipleClothingItems} rentedItemCounts={rentedItemCounts} updateClothingItem={updateClothingItem} deleteClothingItem={deleteClothingItem} itemsWithRentalHistory={itemsWithRentalHistory} />;
       case 'customers':
         return <CustomersPage customers={customers} addCustomer={addCustomer} rentals={rentals} clothingItems={clothingItems} updateCustomer={updateCustomer} deleteCustomer={deleteCustomer} />;
       case 'rentals':

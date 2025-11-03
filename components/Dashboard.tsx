@@ -171,7 +171,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ clothingItems, customers, 
                       cursor={{fill: 'rgba(128, 128, 128, 0.1)'}}
                       content={<CustomTooltip />}
                     />
-                    {/* FIX: Explicitly type the 'entry' parameter in the recharts Legend formatter to resolve the 'Property 'name' does not exist on type 'unknown'' error. The 'any' type was being inferred as 'unknown' due to a strict TypeScript configuration. */}
+                    {/* FIX: Explicitly type the 'entry' parameter in the recharts Legend formatter to resolve the 'Property 'name' does not exist on type 'unknown'' error. The 'entry' parameter was being inferred as 'unknown' due to a strict TypeScript configuration. */}
                     <Legend formatter={(value, entry: { payload?: { name?: string } }) => {
                         const payload = entry.payload;
                         const name = payload?.name || value;
