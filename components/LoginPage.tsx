@@ -60,10 +60,6 @@ export const LoginPage: React.FC = () => {
                 </button>
             </div>
         </form>
-         <div className="text-xs text-center text-gray-500 dark:text-gray-400 pt-4">
-            <p><span className="font-semibold">Admin:</span> Tam@0707</p>
-            <p><span className="font-semibold">User:</span> Tam@1234</p>
-        </div>
       </div>
     </div>
   );
