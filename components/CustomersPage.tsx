@@ -17,6 +17,20 @@ interface CustomersPageProps {
   clothingItems: ClothingItem[];
 }
 
+const formatPhoneNumberForDisplay = (value: string): string => {
+  if (!value) return '';
+  const digits = value.replace(/\D/g, '');
+  if (!digits) return '';
+
+  const phoneNumberLength = digits.length;
+  if (phoneNumberLength < 5) return digits;
+  if (phoneNumberLength < 8) {
+    return `${digits.slice(0, 4)} ${digits.slice(4)}`;
+  }
+  return `${digits.slice(0, 4)} ${digits.slice(4, 7)} ${digits.slice(7, 10)}`;
+};
+
+
 export const CustomersPage: React.FC<CustomersPageProps> = ({ customers, addCustomer, rentals, clothingItems, updateCustomer, deleteCustomer }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newCustomer, setNewCustomer] = useState({ name: '', phone: '', address: '' });
@@ -45,11 +59,27 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({ customers, addCust
   }, [editingCustomer]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setNewCustomer(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    const { name, value } = e.target;
+    if (name === 'phone') {
+        const rawPhone = value.replace(/\D/g, '');
+        if (rawPhone.length <= 10) {
+            setNewCustomer(prev => ({ ...prev, phone: rawPhone }));
+        }
+    } else {
+        setNewCustomer(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleEditInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setEditForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    const { name, value } = e.target;
+    if (name === 'phone') {
+        const rawPhone = value.replace(/\D/g, '');
+        if (rawPhone.length <= 10) {
+            setEditForm(prev => ({ ...prev, phone: rawPhone }));
+        }
+    } else {
+        setEditForm(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -197,7 +227,7 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({ customers, addCust
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Thêm Khách Hàng Mới">
         <form onSubmit={handleSubmit} className="space-y-4">
           <input type="text" name="name" value={newCustomer.name} onChange={handleInputChange} placeholder="Tên khách hàng" className="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600" required />
-          <input type="tel" name="phone" value={newCustomer.phone} onChange={handleInputChange} placeholder="Số điện thoại" className="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600" required />
+          <input type="tel" name="phone" value={formatPhoneNumberForDisplay(newCustomer.phone)} onChange={handleInputChange} placeholder="Số điện thoại" className="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600" required />
           <input type="text" name="address" value={newCustomer.address} onChange={handleInputChange} placeholder="Địa chỉ" className="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600" required />
           <div className="flex justify-end gap-2">
             <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 bg-gray-200 dark:bg-gray-600 rounded">Hủy</button>
@@ -210,7 +240,7 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({ customers, addCust
         <Modal isOpen={!!editingCustomer} onClose={() => setEditingCustomer(null)} title="Chỉnh Sửa Khách Hàng">
             <form onSubmit={handleEditSubmit} className="space-y-4">
                 <input type="text" name="name" value={editForm.name} onChange={handleEditInputChange} placeholder="Tên khách hàng" className="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600" required />
-                <input type="tel" name="phone" value={editForm.phone} onChange={handleEditInputChange} placeholder="Số điện thoại" className="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600" required />
+                <input type="tel" name="phone" value={formatPhoneNumberForDisplay(editForm.phone)} onChange={handleEditInputChange} placeholder="Số điện thoại" className="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600" required />
                 <input type="text" name="address" value={editForm.address} onChange={handleEditInputChange} placeholder="Địa chỉ" className="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600" required />
                 <div className="flex justify-end gap-2">
                     <button type="button" onClick={() => setEditingCustomer(null)} className="px-4 py-2 bg-gray-200 dark:bg-gray-600 rounded">Hủy</button>

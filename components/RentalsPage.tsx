@@ -32,6 +32,20 @@ interface RentalRowProps {
     onDelete?: (rental: Rental) => void;
 }
 
+const formatPhoneNumberForDisplay = (value: string): string => {
+  if (!value) return '';
+  const digits = value.replace(/\D/g, '');
+  if (!digits) return '';
+
+  const phoneNumberLength = digits.length;
+  if (phoneNumberLength < 5) return digits;
+  if (phoneNumberLength < 8) {
+    return `${digits.slice(0, 4)} ${digits.slice(4)}`;
+  }
+  return `${digits.slice(0, 4)} ${digits.slice(4, 7)} ${digits.slice(7, 10)}`;
+};
+
+
 const RentalRow: React.FC<RentalRowProps> = ({rental, customer, clothingMap, onInitiateReturn, onShowInvoice, onDelete}) => {
     const { user } = useAuth();
     const isOverdue = !rental.returnDate && new Date() > parseISO(rental.dueDate);
@@ -225,6 +239,19 @@ export const RentalsPage: React.FC<RentalsPageProps> = ({ rentals, customers, cl
     setIsAddingCustomer(false);
     setNewCustomer(initialNewCustomerState);
   };
+  
+  const handleNewCustomerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    if (name === 'phone') {
+        const rawPhone = value.replace(/\D/g, '');
+        if (rawPhone.length <= 10) {
+            setNewCustomer(p => ({ ...p, phone: rawPhone }));
+        }
+    } else {
+        setNewCustomer(p => ({ ...p, [name]: value }));
+    }
+  };
+
 
   const handleAddNewCustomer = async () => {
     if (newCustomer.name && newCustomer.phone && newCustomer.address) {
@@ -395,9 +422,9 @@ export const RentalsPage: React.FC<RentalsPageProps> = ({ rentals, customers, cl
           {isAddingCustomer ? (
             <div className="p-4 border rounded-lg bg-gray-100 dark:bg-gray-900/50 space-y-3">
               <h4 className="font-semibold text-md text-gray-800 dark:text-gray-200">Thêm Khách Hàng Mới</h4>
-              <input type="text" value={newCustomer.name} onChange={e => setNewCustomer(p => ({...p, name: e.target.value}))} placeholder="Tên khách hàng" className="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600" required />
-              <input type="tel" value={newCustomer.phone} onChange={e => setNewCustomer(p => ({...p, phone: e.target.value}))} placeholder="Số điện thoại" className="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600" required />
-              <input type="text" value={newCustomer.address} onChange={e => setNewCustomer(p => ({...p, address: e.target.value}))} placeholder="Địa chỉ" className="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600" required />
+              <input type="text" name="name" value={newCustomer.name} onChange={handleNewCustomerChange} placeholder="Tên khách hàng" className="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600" required />
+              <input type="tel" name="phone" value={formatPhoneNumberForDisplay(newCustomer.phone)} onChange={handleNewCustomerChange} placeholder="Số điện thoại" className="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600" required />
+              <input type="text" name="address" value={newCustomer.address} onChange={handleNewCustomerChange} placeholder="Địa chỉ" className="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600" required />
               <div className="flex justify-end gap-2 mt-2">
                 <button type="button" onClick={() => setIsAddingCustomer(false)} className="px-4 py-2 bg-gray-200 dark:bg-gray-600 rounded text-sm">Hủy</button>
                 <button type="button" onClick={handleAddNewCustomer} className="px-4 py-2 bg-green-600 text-white rounded text-sm">Lưu Khách Hàng</button>
