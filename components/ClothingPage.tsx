@@ -33,7 +33,7 @@ export const ClothingPage: React.FC<ClothingPageProps> = ({ clothingItems, addCl
   const [editForm, setEditForm] = useState(initialEditFormState);
   
   const [filter, setFilter] = useState<'all' | 'available' | 'unavailable'>('all');
-  const [viewType, setViewType] = useState<'grid' | 'list'>('grid');
+  const [viewType, setViewType] = useState<'grid' | 'list'>('list');
   const [sortOption, setSortOption] = useState('default');
   const [addImageSource, setAddImageSource] = useState<'url' | 'upload'>('url');
   const [editImageSource, setEditImageSource] = useState<'url' | 'upload'>('url');
@@ -118,7 +118,7 @@ export const ClothingPage: React.FC<ClothingPageProps> = ({ clothingItems, addCl
         size: newItem.size, 
         rentalPrice: price,
         quantity: quantity,
-        imageUrl: newItem.imageUrl || `https://picsum.photos/seed/${newItem.name.replace(/\s+/g, '-')}/400/600`
+        imageUrl: newItem.imageUrl || 'https://www.dongphuctranganh.vn/media/photo/p516-548355.jpg'
       });
       setNewItem({ name: '', size: '', rentalPrice: '', quantity: '', imageUrl: '' });
       setIsAddModalOpen(false);
@@ -138,7 +138,7 @@ export const ClothingPage: React.FC<ClothingPageProps> = ({ clothingItems, addCl
         size: editForm.size,
         rentalPrice: price,
         quantity: quantity,
-        imageUrl: editForm.imageUrl || `https://picsum.photos/seed/${editForm.name.replace(/\s+/g, '-')}/400/600`
+        imageUrl: editForm.imageUrl || 'https://www.dongphuctranganh.vn/media/photo/p516-548355.jpg'
       });
       setEditingItem(null);
     }

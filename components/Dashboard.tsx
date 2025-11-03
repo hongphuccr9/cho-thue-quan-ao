@@ -9,7 +9,7 @@ import { subWeeks } from 'date-fns/subWeeks';
 import { subMonths } from 'date-fns/subMonths';
 import { subYears } from 'date-fns/subYears';
 import { vi } from 'date-fns/locale/vi';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { UserCircleIcon } from './icons/UserCircleIcon';
 
 interface DashboardProps {
@@ -36,9 +36,27 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
+// Chart Type Icons
+const BarChartIconSvg: React.FC<{className?: string}> = ({ className }) => (
+    <svg className={className || "w-5 h-5"} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v4m4-10v10m4-4v4m4-8v8m4-13v13" />
+    </svg>
+);
+const LineChartIconSvg: React.FC<{className?: string}> = ({ className }) => (
+    <svg className={className || "w-5 h-5"} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+    </svg>
+);
+const AreaChartIconSvg: React.FC<{ className?: string }> = ({ className }) => (
+    <svg className={className || "w-5 h-5"} fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+        <path fillRule="evenodd" d="M1 15.5l3.75-3.75a.75.75 0 011.06 0l2.44 2.44a.75.75 0 001.06 0l4.3-4.3a.75.75 0 011.12.06l3.75 5.25a.75.75 0 01-.94 1.18l-3.2-4.48a.75.75 0 00-1.06 0l-4.3 4.3a.75.75 0 01-1.06 0L4.47 12.28a.75.75 0 00-1.06 0L1.94 13.82a.75.75 0 01-1.18-.94zM1 4.75a.75.75 0 01.75-.75h16.5a.75.75 0 010 1.5H1.75A.75.75 0 011 4.75z" clipRule="evenodd" />
+    </svg>
+);
+
 
 export const Dashboard: React.FC<DashboardProps> = ({ clothingItems, customers, rentals, rentedItemCounts }) => {
   const [revenueView, setRevenueView] = useState<'week' | 'month' | 'year'>('month');
+  const [chartType, setChartType] = useState<'bar' | 'line' | 'area'>('bar');
   
   const activeRentals = rentals.filter(r => !r.returnDate);
   const overdueRentals = activeRentals.filter(r => new Date() > parseISO(r.dueDate));
@@ -155,30 +173,68 @@ export const Dashboard: React.FC<DashboardProps> = ({ clothingItems, customers, 
       <Card>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
               <h2 className="text-xl font-semibold text-gray-800 dark:text-white">Báo Cáo Doanh Thu</h2>
-              <div className="flex items-center bg-gray-200 dark:bg-gray-700 rounded-lg p-1">
-                  <button onClick={() => setRevenueView('week')} className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${revenueView === 'week' ? 'bg-white dark:bg-gray-800 text-primary-600 shadow' : 'text-gray-600 dark:text-gray-300'}`}>Tuần</button>
-                  <button onClick={() => setRevenueView('month')} className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${revenueView === 'month' ? 'bg-white dark:bg-gray-800 text-primary-600 shadow' : 'text-gray-600 dark:text-gray-300'}`}>Tháng</button>
-                  <button onClick={() => setRevenueView('year')} className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${revenueView === 'year' ? 'bg-white dark:bg-gray-800 text-primary-600 shadow' : 'text-gray-600 dark:text-gray-300'}`}>Năm</button>
+              <div className="flex flex-col sm:flex-row items-center gap-2">
+                  <div className="flex items-center bg-gray-200 dark:bg-gray-700 rounded-lg p-1">
+                      <button title="Biểu đồ cột" onClick={() => setChartType('bar')} className={`p-1.5 rounded-md transition-colors ${chartType === 'bar' ? 'bg-white dark:bg-gray-800 text-primary-600 shadow' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'}`}>
+                          <BarChartIconSvg />
+                      </button>
+                      <button title="Biểu đồ đường" onClick={() => setChartType('line')} className={`p-1.5 rounded-md transition-colors ${chartType === 'line' ? 'bg-white dark:bg-gray-800 text-primary-600 shadow' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'}`}>
+                          <LineChartIconSvg />
+                      </button>
+                      <button title="Biểu đồ miền" onClick={() => setChartType('area')} className={`p-1.5 rounded-md transition-colors ${chartType === 'area' ? 'bg-white dark:bg-gray-800 text-primary-600 shadow' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'}`}>
+                          <AreaChartIconSvg />
+                      </button>
+                  </div>
+                  <div className="flex items-center bg-gray-200 dark:bg-gray-700 rounded-lg p-1">
+                      <button onClick={() => setRevenueView('week')} className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${revenueView === 'week' ? 'bg-white dark:bg-gray-800 text-primary-600 shadow' : 'text-gray-600 dark:text-gray-300'}`}>Tuần</button>
+                      <button onClick={() => setRevenueView('month')} className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${revenueView === 'month' ? 'bg-white dark:bg-gray-800 text-primary-600 shadow' : 'text-gray-600 dark:text-gray-300'}`}>Tháng</button>
+                      <button onClick={() => setRevenueView('year')} className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${revenueView === 'year' ? 'bg-white dark:bg-gray-800 text-primary-600 shadow' : 'text-gray-600 dark:text-gray-300'}`}>Năm</button>
+                  </div>
               </div>
           </div>
           <div style={{ width: '100%', height: 300 }}>
             <ResponsiveContainer>
-                <BarChart data={revenueData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+              <>
+                {chartType === 'bar' && (
+                  <BarChart data={revenueData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} />
                     <XAxis dataKey="name" tick={{ fill: 'currentColor', fontSize: 12 }} />
                     <YAxis tick={{ fill: 'currentColor', fontSize: 12 }} tickFormatter={(value: number) => new Intl.NumberFormat('vi-VN').format(value)}/>
-                    <Tooltip 
-                      cursor={{fill: 'rgba(128, 128, 128, 0.1)'}}
-                      content={<CustomTooltip />}
-                    />
-                    {/* FIX: Explicitly type the 'entry' parameter in the recharts Legend formatter to resolve the 'Property 'name' does not exist on type 'unknown'' error. The 'entry' parameter was being inferred as 'unknown' due to a strict TypeScript configuration. */}
-                    <Legend formatter={(value, entry: { payload?: { name?: string } }) => {
-                        const payload = entry.payload;
-                        const name = payload?.name || value;
-                        return <span className="text-gray-800 dark:text-white">{name}</span>;
-                    }} />
+                    <Tooltip cursor={{fill: 'rgba(128, 128, 128, 0.1)'}} content={<CustomTooltip />}/>
+                    {/* FIX: Changed type of `entry` parameter to `{ payload?: any }` to resolve TypeScript error on `entry.payload.name`. */}
+                    <Legend formatter={(value, entry: { payload?: any }) => (<span className="text-gray-800 dark:text-white">{entry.payload?.name || value}</span>)} />
                     <Bar dataKey="DoanhThu" name="Doanh Thu" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                </BarChart>
+                  </BarChart>
+                )}
+                {chartType === 'line' && (
+                  <LineChart data={revenueData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} />
+                    <XAxis dataKey="name" tick={{ fill: 'currentColor', fontSize: 12 }} />
+                    <YAxis tick={{ fill: 'currentColor', fontSize: 12 }} tickFormatter={(value: number) => new Intl.NumberFormat('vi-VN').format(value)}/>
+                    <Tooltip cursor={{fill: 'rgba(128, 128, 128, 0.1)'}} content={<CustomTooltip />}/>
+                    {/* FIX: Changed type of `entry` parameter to `{ payload?: any }` to resolve TypeScript error on `entry.payload.name`. */}
+                    <Legend formatter={(value, entry: { payload?: any }) => (<span className="text-gray-800 dark:text-white">{entry.payload?.name || value}</span>)} />
+                    <Line type="monotone" dataKey="DoanhThu" name="Doanh Thu" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 8, stroke: '#3b82f6', fill: '#fff', strokeWidth: 2 }}/>
+                  </LineChart>
+                )}
+                {chartType === 'area' && (
+                  <AreaChart data={revenueData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                    <defs>
+                        <linearGradient id="colorDoanhThu" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
+                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                        </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} />
+                    <XAxis dataKey="name" tick={{ fill: 'currentColor', fontSize: 12 }} />
+                    <YAxis tick={{ fill: 'currentColor', fontSize: 12 }} tickFormatter={(value: number) => new Intl.NumberFormat('vi-VN').format(value)}/>
+                    <Tooltip cursor={{fill: 'rgba(128, 128, 128, 0.1)'}} content={<CustomTooltip />}/>
+                    {/* FIX: Changed type of `entry` parameter to `{ payload?: any }` to resolve TypeScript error on `entry.payload.name`. */}
+                    <Legend formatter={(value, entry: { payload?: any }) => (<span className="text-gray-800 dark:text-white">{entry.payload?.name || value}</span>)} />
+                    <Area type="monotone" dataKey="DoanhThu" name="Doanh Thu" stroke="#3b82f6" strokeWidth={2} fillOpacity={1} fill="url(#colorDoanhThu)" />
+                  </AreaChart>
+                )}
+              </>
             </ResponsiveContainer>
           </div>
       </Card>
