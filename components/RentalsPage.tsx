@@ -256,16 +256,21 @@ export const RentalsPage: React.FC<RentalsPageProps> = ({ rentals, customers, cl
         sortableItems.sort((a, b) => {
             const key = sortConfig.key;
 
-            const getSortValue = (rental: Rental) => {
+            const getSortValue = (rental: Rental): string | number | null => {
                 switch(key) {
-                    case 'customerName': return customerMap.get(rental.customerId)?.name || '';
-                    case 'rentalDate':
+                    case 'customerName': 
+                        return customerMap.get(rental.customerId)?.name || '';
+                    case 'rentalDate': 
+                        return parseISO(rental.rentalDate).getTime();
                     case 'dueDate':
+                        return parseISO(rental.dueDate).getTime();
                     case 'returnDate': {
-                        const dateValue = rental[key];
+                        // All past rentals have a return date, so this check is for type safety.
+                        const dateValue = rental.returnDate;
                         return dateValue ? parseISO(dateValue).getTime() : 0;
                     }
-                    case 'totalPrice': return rental.totalPrice ?? null;
+                    case 'totalPrice': 
+                        return rental.totalPrice ?? null;
                 }
             };
             
@@ -275,12 +280,16 @@ export const RentalsPage: React.FC<RentalsPageProps> = ({ rentals, customers, cl
             if (aValue === null) return 1;
             if (bValue === null) return -1;
             
-            if (aValue < bValue) {
-                return sortConfig.direction === 'ascending' ? -1 : 1;
+            const direction = sortConfig.direction === 'ascending' ? 1 : -1;
+
+            if (typeof aValue === 'string' && typeof bValue === 'string') {
+                return aValue.localeCompare(bValue) * direction;
             }
-            if (aValue > bValue) {
-                return sortConfig.direction === 'ascending' ? 1 : -1;
+
+            if (typeof aValue === 'number' && typeof bValue === 'number') {
+                return (aValue - bValue) * direction;
             }
+
             return 0;
         });
     }

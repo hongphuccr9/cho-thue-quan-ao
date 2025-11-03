@@ -199,7 +199,7 @@ const MainLayout: React.FC<{user: User}> = ({ user }) => {
 
     switch (view) {
       case 'dashboard':
-        return <Dashboard clothingItems={clothingItems} customers={customers} rentals={rentals} rentedItemCounts={rentedItemCounts}/>;
+        return <Dashboard clothingItems={clothingItems} customers={customers} rentals={rentals} rentedItemCounts={rentedItemCounts} setView={setView} />;
       case 'clothing':
         return <ClothingPage clothingItems={clothingItems} addClothingItem={addClothingItem} addMultipleClothingItems={addMultipleClothingItems} rentedItemCounts={rentedItemCounts} updateClothingItem={updateClothingItem} deleteClothingItem={deleteClothingItem} itemsWithRentalHistory={itemsWithRentalHistory} />;
       case 'customers':
@@ -207,7 +207,7 @@ const MainLayout: React.FC<{user: User}> = ({ user }) => {
       case 'rentals':
         return <RentalsPage rentals={rentals} customers={customers} clothingItems={clothingItems} returnRental={returnRental} addRental={addRental} addCustomer={addCustomer} rentedItemCounts={rentedItemCounts} deleteRental={deleteRental} updateRental={updateRental} />;
       default:
-        return <Dashboard clothingItems={clothingItems} customers={customers} rentals={rentals} rentedItemCounts={rentedItemCounts} />;
+        return <Dashboard clothingItems={clothingItems} customers={customers} rentals={rentals} rentedItemCounts={rentedItemCounts} setView={setView} />;
     }
   };
 

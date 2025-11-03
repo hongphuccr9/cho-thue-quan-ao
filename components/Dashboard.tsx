@@ -1,7 +1,5 @@
-
-
-import React, { useState, useMemo } from 'react';
-import type { ClothingItem, Customer, Rental } from '../types';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import type { ClothingItem, Customer, Rental, View } from '../types';
 import { Card } from './shared/Card';
 import { format, getYear, getMonth, getWeek } from 'date-fns';
 import { parseISO } from 'date-fns/parseISO';
@@ -17,6 +15,7 @@ interface DashboardProps {
   customers: Customer[];
   rentals: Rental[];
   rentedItemCounts: Map<number, number>;
+  setView: (view: View) => void;
 }
 
 // Custom Tooltip for Revenue Chart
@@ -53,10 +52,61 @@ const AreaChartIconSvg: React.FC<{ className?: string }> = ({ className }) => (
     </svg>
 );
 
+// --- New Icons for Stat Cards ---
+const TotalItemsIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className || "w-8 h-8"} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.657 7.343A8 8 0 0117.657 18.657z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.879 16.121A3 3 0 1014.12 11.88l-4.242 4.242z"></path></svg>
+);
+const StockIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className || "w-8 h-8"} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>
+);
+const RentedIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className || "w-8 h-8"} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+);
+const OverdueIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className || "w-8 h-8"} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+);
 
-export const Dashboard: React.FC<DashboardProps> = ({ clothingItems, customers, rentals, rentedItemCounts }) => {
+
+const AnimatedNumber = ({ value }: { value: number }) => {
+  const [displayValue, setDisplayValue] = useState(0);
+
+  useEffect(() => {
+    const animationDuration = 1000; // 1 second
+    const frameDuration = 1000 / 60; // 60fps
+    const totalFrames = Math.round(animationDuration / frameDuration);
+    let frame = 0;
+
+    const counter = setInterval(() => {
+      frame++;
+      const progress = frame / totalFrames;
+      // Ease out function for smoother animation
+      const easedProgress = 1 - Math.pow(1 - progress, 3);
+      const currentValue = Math.round(value * easedProgress);
+      
+      setDisplayValue(currentValue);
+
+      if (frame === totalFrames) {
+        clearInterval(counter);
+        setDisplayValue(value); // Ensure it ends on the exact value
+      }
+    }, frameDuration);
+
+    return () => clearInterval(counter);
+  }, [value]);
+
+  return <span>{displayValue.toLocaleString('vi-VN')}</span>;
+};
+
+
+export const Dashboard: React.FC<DashboardProps> = ({ clothingItems, customers, rentals, rentedItemCounts, setView }) => {
   const [revenueView, setRevenueView] = useState<'week' | 'month' | 'year'>('month');
   const [chartType, setChartType] = useState<'bar' | 'line' | 'area'>('bar');
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsMounted(true), 100);
+    return () => clearTimeout(timer);
+  }, []);
   
   const activeRentals = rentals.filter(r => !r.returnDate);
   const overdueRentals = activeRentals.filter(r => new Date() > parseISO(r.dueDate));
@@ -68,10 +118,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ clothingItems, customers, 
     .filter(item => (rentedItemCounts.get(item.id) || 0) > 0);
 
   const stats = [
-    { title: 'Tổng Số Loại Đồ', value: clothingItems.length },
-    { title: 'Tổng Số Lượng Trong Kho', value: totalItemsStock },
-    { title: 'Đang Cho Thuê', value: activeRentals.length },
-    { title: 'Quá Hạn Trả', value: overdueRentals.length, isWarning: true },
+    { title: 'Tổng Số Loại Đồ', value: clothingItems.length, icon: <TotalItemsIcon />, color: 'text-blue-600 dark:text-blue-300', bgColor: 'bg-blue-100 dark:bg-blue-900/30' },
+    { title: 'Tổng Số Lượng Trong Kho', value: totalItemsStock, icon: <StockIcon />, color: 'text-teal-600 dark:text-teal-300', bgColor: 'bg-teal-100 dark:bg-teal-900/30', navTarget: 'clothing' as const },
+    { title: 'Đang Cho Thuê', value: activeRentals.length, icon: <RentedIcon />, color: 'text-green-600 dark:text-green-300', bgColor: 'bg-green-100 dark:bg-green-900/30', navTarget: 'rentals' as const },
+    { title: 'Quá Hạn Trả', value: overdueRentals.length, icon: <OverdueIcon />, color: 'text-red-600 dark:text-red-300', bgColor: 'bg-red-100 dark:bg-red-900/30' },
   ];
   
   const clothingItemMap = new Map<number, ClothingItem>(clothingItems.map(item => [item.id, item]));
@@ -160,17 +210,43 @@ export const Dashboard: React.FC<DashboardProps> = ({ clothingItems, customers, 
       <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Bảng Điều Khiển</h1>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map(stat => (
-          <Card key={stat.title}>
-            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">{stat.title}</h3>
-            <p className={`mt-1 text-3xl font-semibold ${stat.isWarning && stat.value > 0 ? 'text-red-600' : 'text-gray-900 dark:text-white'}`}>
-              {stat.value}
-            </p>
-          </Card>
-        ))}
+        {stats.map((stat, index) => {
+          const isClickable = !!stat.navTarget;
+          // Use a button for clickable cards for accessibility, otherwise use a div
+          const WrapperComponent = isClickable ? 'button' : 'div';
+          const wrapperProps = isClickable ? {
+            onClick: () => setView(stat.navTarget!),
+            className: "text-left w-full h-full focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 rounded-lg",
+            'aria-label': `Chuyển đến trang ${stat.title}`
+          } : {};
+
+          return (
+            <WrapperComponent key={stat.title} {...wrapperProps}>
+              <Card className={`
+                    !p-4 flex flex-col justify-between h-full
+                    transform transition-all duration-500 ease-out
+                    ${isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}
+                    ${isClickable ? 'hover:-translate-y-2 hover:shadow-xl cursor-pointer' : ''}
+                `} style={{ transitionDelay: `${index * 100}ms` }}>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">{stat.title}</h3>
+                  <div className={`p-2 rounded-full ${stat.bgColor}`}>
+                    <div className={stat.color}>{stat.icon}</div>
+                  </div>
+                </div>
+                <p className={`mt-2 text-3xl font-semibold ${stat.color}`}>
+                  <AnimatedNumber value={stat.value} />
+                </p>
+              </Card>
+            </WrapperComponent>
+          );
+        })}
       </div>
 
-      <Card>
+       <Card className={`
+          transform transition-all duration-500 ease-out
+          ${isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}
+        `} style={{ transitionDelay: `400ms` }}>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
               <h2 className="text-xl font-semibold text-gray-800 dark:text-white">Báo Cáo Doanh Thu</h2>
               <div className="flex flex-col sm:flex-row items-center gap-2">
@@ -201,8 +277,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ clothingItems, customers, 
                     <XAxis dataKey="name" tick={{ fill: 'currentColor', fontSize: 12 }} />
                     <YAxis tick={{ fill: 'currentColor', fontSize: 12 }} tickFormatter={(value: number) => new Intl.NumberFormat('vi-VN').format(value)}/>
                     <Tooltip cursor={{fill: 'rgba(128, 128, 128, 0.1)'}} content={<CustomTooltip />}/>
-                    {/* FIX: Changed type of `entry` parameter to `any` to resolve TypeScript error on `entry.payload.name`. */}
-                    <Legend formatter={(value, entry: any) => (<span className="text-gray-800 dark:text-white">{entry.payload?.name || value}</span>)} />
+                    {/* FIX: Correctly format legend to display series name instead of x-axis label. */}
+                    <Legend formatter={(value) => <span className="text-gray-800 dark:text-white">{value}</span>} />
                     <Bar dataKey="DoanhThu" name="Doanh Thu" fill="#3b82f6" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 )}
@@ -212,8 +288,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ clothingItems, customers, 
                     <XAxis dataKey="name" tick={{ fill: 'currentColor', fontSize: 12 }} />
                     <YAxis tick={{ fill: 'currentColor', fontSize: 12 }} tickFormatter={(value: number) => new Intl.NumberFormat('vi-VN').format(value)}/>
                     <Tooltip cursor={{fill: 'rgba(128, 128, 128, 0.1)'}} content={<CustomTooltip />}/>
-                    {/* FIX: Changed type of `entry` parameter to `any` to resolve TypeScript error on `entry.payload.name`. */}
-                    <Legend formatter={(value, entry: any) => (<span className="text-gray-800 dark:text-white">{entry.payload?.name || value}</span>)} />
+                    {/* FIX: Correctly format legend to display series name instead of x-axis label. */}
+                    <Legend formatter={(value) => <span className="text-gray-800 dark:text-white">{value}</span>} />
                     <Line type="monotone" dataKey="DoanhThu" name="Doanh Thu" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 8, stroke: '#3b82f6', fill: '#fff', strokeWidth: 2 }}/>
                   </LineChart>
                 )}
@@ -229,8 +305,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ clothingItems, customers, 
                     <XAxis dataKey="name" tick={{ fill: 'currentColor', fontSize: 12 }} />
                     <YAxis tick={{ fill: 'currentColor', fontSize: 12 }} tickFormatter={(value: number) => new Intl.NumberFormat('vi-VN').format(value)}/>
                     <Tooltip cursor={{fill: 'rgba(128, 128, 128, 0.1)'}} content={<CustomTooltip />}/>
-                    {/* FIX: Changed type of `entry` parameter to `any` to resolve TypeScript error on `entry.payload.name`. */}
-                    <Legend formatter={(value, entry: any) => (<span className="text-gray-800 dark:text-white">{entry.payload?.name || value}</span>)} />
+                    {/* FIX: Correctly format legend to display series name instead of x-axis label. */}
+                    <Legend formatter={(value) => <span className="text-gray-800 dark:text-white">{value}</span>} />
                     <Area type="monotone" dataKey="DoanhThu" name="Doanh Thu" stroke="#3b82f6" strokeWidth={2} fillOpacity={1} fill="url(#colorDoanhThu)" />
                   </AreaChart>
                 )}
@@ -240,7 +316,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ clothingItems, customers, 
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <Card>
+        <Card className={`
+          transform transition-all duration-500 ease-out
+          ${isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}
+        `} style={{ transitionDelay: `500ms` }}>
           <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Món Đồ Được Thuê Nhiều Nhất (Hiện tại)</h2>
           {mostPopularItems.length > 0 ? (
             <ul className="space-y-4">
@@ -261,7 +340,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ clothingItems, customers, 
           )}
         </Card>
 
-        <Card>
+        <Card className={`
+          transform transition-all duration-500 ease-out
+          ${isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}
+        `} style={{ transitionDelay: `600ms` }}>
           <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Top 5 Khách Hàng Chi Tiêu Nhiều Nhất (Năm nay)</h2>
           {topSpendingCustomers.length > 0 ? (
             <ul className="space-y-4">
@@ -282,7 +364,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ clothingItems, customers, 
           )}
         </Card>
 
-        <Card className="lg:col-span-2">
+        <Card className={`lg:col-span-2
+          transform transition-all duration-500 ease-out
+          ${isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}
+        `} style={{ transitionDelay: `700ms` }}>
           <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Lượt Thuê Quá Hạn</h2>
           {overdueRentals.length > 0 ? (
             <div className="overflow-x-auto">
