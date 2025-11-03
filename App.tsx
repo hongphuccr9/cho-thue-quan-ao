@@ -123,6 +123,11 @@ const MainLayout: React.FC<{user: User}> = ({ user }) => {
     const newRental = await db.addRental(rental);
     setRentals(prev => [newRental, ...prev]);
   };
+  
+  const updateRental = async (rentalToUpdate: Rental) => {
+    const updatedRentalFromDb = await db.updateRental(rentalToUpdate);
+    setRentals(prev => prev.map(r => r.id === rentalToUpdate.id ? updatedRentalFromDb : r));
+  };
 
   const returnRental = async (rentalId: number): Promise<Rental | undefined> => {
     const rentalToReturn = rentals.find(r => r.id === rentalId);
@@ -195,7 +200,7 @@ const MainLayout: React.FC<{user: User}> = ({ user }) => {
       case 'customers':
         return <CustomersPage customers={customers} addCustomer={addCustomer} rentals={rentals} clothingItems={clothingItems} updateCustomer={updateCustomer} deleteCustomer={deleteCustomer} />;
       case 'rentals':
-        return <RentalsPage rentals={rentals} customers={customers} clothingItems={clothingItems} returnRental={returnRental} addRental={addRental} addCustomer={addCustomer} rentedItemCounts={rentedItemCounts} deleteRental={deleteRental} />;
+        return <RentalsPage rentals={rentals} customers={customers} clothingItems={clothingItems} returnRental={returnRental} addRental={addRental} addCustomer={addCustomer} rentedItemCounts={rentedItemCounts} deleteRental={deleteRental} updateRental={updateRental} />;
       default:
         return <Dashboard clothingItems={clothingItems} customers={customers} rentals={rentals} rentedItemCounts={rentedItemCounts} />;
     }

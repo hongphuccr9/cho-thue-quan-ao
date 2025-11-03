@@ -1,9 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import type { Rental, Customer, ClothingItem } from '../types';
 import { Card } from './shared/Card';
 import { Modal } from './shared/Modal';
 import { InvoiceModal } from './InvoiceModal';
-import { format } from 'date-fns';
+import { format, differenceInCalendarDays } from 'date-fns';
 import { parseISO } from 'date-fns/parseISO';
 import { exportToCSV } from '../utils/export';
 import { ExportIcon } from './icons/ExportIcon';
@@ -21,6 +21,7 @@ interface RentalsPageProps {
   addCustomer: (customer: Omit<Customer, 'id'>) => Promise<Customer>;
   rentedItemCounts: Map<number, number>;
   deleteRental: (rentalId: number) => Promise<void>;
+  updateRental: (rental: Rental) => Promise<void>;
 }
 
 interface RentalRowProps {
@@ -51,8 +52,27 @@ const RentalRow: React.FC<RentalRowProps> = ({rental, customer, clothingMap, onI
     const isOverdue = !rental.returnDate && new Date() > parseISO(rental.dueDate);
     const isCompleted = !!rental.returnDate;
 
+    const temporaryTotal = useMemo(() => {
+        if (isCompleted) return null;
+
+        const today = new Date();
+        const rentalDate = parseISO(rental.rentalDate);
+        const daysRentedSoFar = Math.max(1, differenceInCalendarDays(today, rentalDate) + 1);
+        
+        const dailyRate = rental.rentedItems.reduce((acc, rentedItem) => {
+            const item = clothingMap.get(rentedItem.itemId);
+            return acc + (item?.rentalPrice || 0) * rentedItem.quantity;
+        }, 0);
+
+        const grossPrice = dailyRate * daysRentedSoFar;
+        const discount = rental.discountPercent || 0;
+        const discountAmount = grossPrice * (discount / 100);
+        
+        return Math.round(grossPrice - discountAmount);
+    }, [rental, clothingMap, isCompleted]);
+
     const handleRowClick = () => {
-        if (!isCompleted && onInitiateReturn && user?.role === 'admin') {
+        if (!isCompleted && onInitiateReturn) {
             onInitiateReturn(rental);
         } else if (isCompleted && onShowInvoice) {
             onShowInvoice(rental);
@@ -85,9 +105,23 @@ const RentalRow: React.FC<RentalRowProps> = ({rental, customer, clothingMap, onI
           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300 max-w-xs truncate" title={rental.notes}>{rental.notes || '-'}</td>
           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white font-semibold">
              <div className="flex items-center">
-                <span>{rental.totalPrice ? rental.totalPrice.toLocaleString('vi-VN', {style: 'currency', currency: 'VND'}) : 'N/A'}</span>
-                {rental.discountPercent && rental.discountPercent > 0 && isCompleted && (
-                    <span title={`Giảm giá ${rental.discountPercent}%`} className="ml-2 text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200 px-2 py-0.5 rounded-full">
+                {isCompleted ? (
+                    <span>{rental.totalPrice ? rental.totalPrice.toLocaleString('vi-VN', {style: 'currency', currency: 'VND'}) : 'N/A'}</span>
+                ) : (
+                    <div className="flex flex-col items-start">
+                        <span>
+                            {temporaryTotal?.toLocaleString('vi-VN', {style: 'currency', currency: 'VND'})}
+                        </span>
+                        <span className="text-xs font-normal text-gray-500 dark:text-gray-400 italic">
+                            (Tạm tính)
+                        </span>
+                    </div>
+                )}
+                {rental.discountPercent && rental.discountPercent > 0 && (
+                    <span 
+                        title={`Giảm giá ${rental.discountPercent}%`} 
+                        className="ml-2 text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200 px-2 py-0.5 rounded-full self-start"
+                    >
                         -%
                     </span>
                 )}
@@ -95,7 +129,7 @@ const RentalRow: React.FC<RentalRowProps> = ({rental, customer, clothingMap, onI
           </td>
           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
             <div className="flex items-center justify-end gap-x-2">
-              {!isCompleted && user?.role === 'admin' && onInitiateReturn && (
+              {!isCompleted && onInitiateReturn && (
                 <span className="text-indigo-600 font-semibold">Xem chi tiết</span>
               )}
               {isCompleted && onShowInvoice && (
@@ -119,12 +153,13 @@ const RentalRow: React.FC<RentalRowProps> = ({rental, customer, clothingMap, onI
     )
 }
 
-export const RentalsPage: React.FC<RentalsPageProps> = ({ rentals, customers, clothingItems, returnRental, addRental, addCustomer, rentedItemCounts, deleteRental }) => {
+export const RentalsPage: React.FC<RentalsPageProps> = ({ rentals, customers, clothingItems, returnRental, addRental, addCustomer, rentedItemCounts, deleteRental, updateRental }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRentalForInvoice, setSelectedRentalForInvoice] = useState<Rental | null>(null);
   const [rentalToConfirmReturn, setRentalToConfirmReturn] = useState<Rental | null>(null);
   const [selectedActiveRental, setSelectedActiveRental] = useState<Rental | null>(null);
   const [rentalToDelete, setRentalToDelete] = useState<Rental | null>(null);
+  const [rentalToEdit, setRentalToEdit] = useState<Rental | null>(null);
   const { user } = useAuth();
   
   const todayString = format(new Date(), 'yyyy-MM-dd');
@@ -138,8 +173,23 @@ export const RentalsPage: React.FC<RentalsPageProps> = ({ rentals, customers, cl
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'ascending' | 'descending' }>({ key: 'returnDate', direction: 'descending' });
   const [searchTerm, setSearchTerm] = useState('');
 
-  const customerMap = useMemo(() => new Map(customers.map(c => [c.id, c])), [customers]);
-  const clothingMap = useMemo(() => new Map(clothingItems.map(c => [c.id, c])), [clothingItems]);
+  // FIX: Explicitly typing maps to prevent type inference issues.
+  const customerMap = useMemo(() => new Map<number, Customer>(customers.map(c => [c.id, c])), [customers]);
+  const clothingMap = useMemo(() => new Map<number, ClothingItem>(clothingItems.map(c => [c.id, c])), [clothingItems]);
+
+  useEffect(() => {
+    if (rentalToEdit) {
+      setNewRental({
+        customerId: rentalToEdit.customerId.toString(),
+        rentedItems: rentalToEdit.rentedItems,
+        rentalDate: format(parseISO(rentalToEdit.rentalDate), 'yyyy-MM-dd'),
+        dueDate: format(parseISO(rentalToEdit.dueDate), 'yyyy-MM-dd'),
+        notes: rentalToEdit.notes || '',
+        discountPercent: rentalToEdit.discountPercent?.toString() || '',
+      });
+      setIsModalOpen(true);
+    }
+  }, [rentalToEdit]);
   
   const getItemsForRental = (rental: Rental): ClothingItem[] => {
     return rental.rentedItems.map(({itemId}) => clothingMap.get(itemId)).filter((i): i is ClothingItem => !!i);
@@ -163,7 +213,7 @@ export const RentalsPage: React.FC<RentalsPageProps> = ({ rentals, customers, cl
 
       return false;
     });
-  }, [searchTerm, rentals, customerMap, clothingMap]);
+  }, [searchTerm, rentals, customerMap]);
 
 
   const { activeRentals, pastRentals } = useMemo(() => {
@@ -174,12 +224,28 @@ export const RentalsPage: React.FC<RentalsPageProps> = ({ rentals, customers, cl
     return { activeRentals: active, pastRentals: past };
   }, [filteredRentals]);
 
-  const availableItems = useMemo(() => {
-    return clothingItems.filter(item => {
-        const rentedCount = rentedItemCounts.get(item.id) || 0;
-        return item.quantity - rentedCount > 0;
-    });
-  }, [clothingItems, rentedItemCounts]);
+  const itemsForSelectionInModal = useMemo(() => {
+      const itemsInThisRental = new Set(rentalToEdit?.rentedItems.map(ri => ri.itemId) || []);
+      const availableNowItems = clothingItems.filter(item => {
+          const rentedCount = rentedItemCounts.get(item.id) || 0;
+          return item.quantity - rentedCount > 0;
+      });
+      
+      const combined = new Map<number, ClothingItem>();
+      
+      // Add all items from the current rental being edited
+      itemsInThisRental.forEach(id => {
+        const item = clothingMap.get(id);
+        if (item) combined.set(id, item);
+      });
+      
+      // Add all other available items
+      availableNowItems.forEach(item => {
+        combined.set(item.id, item);
+      });
+      
+      return Array.from(combined.values()).sort((a,b) => a.name.localeCompare(b.name));
+  }, [clothingItems, rentedItemCounts, rentalToEdit, clothingMap]);
 
   const sortedPastRentals = useMemo(() => {
     const sortableItems = [...pastRentals];
@@ -235,6 +301,7 @@ export const RentalsPage: React.FC<RentalsPageProps> = ({ rentals, customers, cl
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
+    setRentalToEdit(null);
     setNewRental(initialNewRentalState);
     setIsAddingCustomer(false);
     setNewCustomer(initialNewCustomerState);
@@ -269,15 +336,28 @@ export const RentalsPage: React.FC<RentalsPageProps> = ({ rentals, customers, cl
     const customerId = parseInt(newRental.customerId);
     const discountPercent = newRental.discountPercent ? parseFloat(newRental.discountPercent) : undefined;
     if (customerId && newRental.rentedItems.length > 0 && newRental.rentalDate && newRental.dueDate) {
-      await addRental({
-        customerId,
-        rentedItems: newRental.rentedItems,
-        rentalDate: new Date(newRental.rentalDate).toISOString(),
-        dueDate: new Date(newRental.dueDate).toISOString(),
-        notes: newRental.notes,
-        discountPercent,
-      });
-      handleCloseModal();
+        if (rentalToEdit) {
+            const rentalData: Rental = {
+                ...rentalToEdit,
+                customerId,
+                rentedItems: newRental.rentedItems,
+                rentalDate: new Date(newRental.rentalDate).toISOString(),
+                dueDate: new Date(newRental.dueDate).toISOString(),
+                notes: newRental.notes,
+                discountPercent,
+            };
+            await updateRental(rentalData);
+        } else {
+            await addRental({
+                customerId,
+                rentedItems: newRental.rentedItems,
+                rentalDate: new Date(newRental.rentalDate).toISOString(),
+                dueDate: new Date(newRental.dueDate).toISOString(),
+                notes: newRental.notes,
+                discountPercent,
+            });
+        }
+        handleCloseModal();
     }
   };
 
@@ -379,7 +459,10 @@ export const RentalsPage: React.FC<RentalsPageProps> = ({ rentals, customers, cl
             </button>
             {user?.role === 'admin' && (
               <button
-                onClick={() => setIsModalOpen(true)}
+                onClick={() => {
+                  setRentalToEdit(null);
+                  setIsModalOpen(true);
+                }}
                 className="flex-shrink-0 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition duration-200"
               >
                 Tạo Mới
@@ -417,7 +500,7 @@ export const RentalsPage: React.FC<RentalsPageProps> = ({ rentals, customers, cl
         </div>
       </Card>
       
-      <Modal isOpen={isModalOpen} onClose={handleCloseModal} title="Tạo Lượt Thuê Mới">
+      <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={rentalToEdit ? "Chỉnh Sửa Lượt Thuê" : "Tạo Lượt Thuê Mới"}>
         <form onSubmit={handleSubmit} className="space-y-4">
           {isAddingCustomer ? (
             <div className="p-4 border rounded-lg bg-gray-100 dark:bg-gray-900/50 space-y-3">
@@ -443,26 +526,32 @@ export const RentalsPage: React.FC<RentalsPageProps> = ({ rentals, customers, cl
             </div>
           )}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Các món đồ có sẵn</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Các món đồ</label>
             <div className="mt-1 max-h-48 overflow-y-auto border rounded p-2 bg-gray-50 dark:bg-gray-700 dark:border-gray-600 space-y-2">
-              {availableItems.length > 0 ? availableItems.map(item => {
+              {itemsForSelectionInModal.length > 0 ? itemsForSelectionInModal.map(item => {
                 const selectedItem = newRental.rentedItems.find(i => i.itemId === item.id);
                 const isSelected = !!selectedItem;
-                const availableCount = item.quantity - (rentedItemCounts.get(item.id) || 0);
+                
+                const originallyRentedQty = rentalToEdit?.rentedItems.find(ri => ri.itemId === item.id)?.quantity || 0;
+                const rentedByOthers = (rentedItemCounts.get(item.id) || 0) - originallyRentedQty;
+                const maxQuantity = item.quantity - rentedByOthers;
+
+                const isAvailableForSelection = maxQuantity > 0;
 
                 return (
-                    <div key={item.id} className="flex items-center justify-between p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-600/50">
+                    <div key={item.id} className={`flex items-center justify-between p-2 rounded-md ${!isAvailableForSelection && !isSelected ? 'opacity-50' : 'hover:bg-gray-100 dark:hover:bg-gray-600/50'}`}>
                         <div className="flex items-center">
                             <input 
                                 type="checkbox" 
                                 id={`item-${item.id}`} 
                                 checked={isSelected} 
-                                onChange={() => handleItemToggle(item.id)} 
-                                className="h-4 w-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                                onChange={() => handleItemToggle(item.id)}
+                                disabled={!isAvailableForSelection && !isSelected}
+                                className="h-4 w-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500 disabled:cursor-not-allowed"
                             />
-                            <label htmlFor={`item-${item.id}`} className="ml-3 text-sm text-gray-900 dark:text-gray-200">
+                            <label htmlFor={`item-${item.id}`} className={`ml-3 text-sm text-gray-900 dark:text-gray-200 ${!isAvailableForSelection && !isSelected ? 'cursor-not-allowed' : ''}`}>
                                 {item.name} 
-                                <span className="text-xs text-gray-500 dark:text-gray-400"> (Còn lại: {availableCount})</span>
+                                <span className="text-xs text-gray-500 dark:text-gray-400"> (Tối đa: {maxQuantity})</span>
                             </label>
                         </div>
                         {isSelected && (
@@ -472,7 +561,7 @@ export const RentalsPage: React.FC<RentalsPageProps> = ({ rentals, customers, cl
                                     type="number"
                                     id={`quantity-${item.id}`}
                                     min="1"
-                                    max={availableCount}
+                                    max={maxQuantity}
                                     value={selectedItem.quantity}
                                     onChange={(e) => handleQuantityChange(item.id, e.target.value)}
                                     className="w-20 p-1 border rounded bg-white dark:bg-gray-800 dark:border-gray-600 text-center"
@@ -505,7 +594,7 @@ export const RentalsPage: React.FC<RentalsPageProps> = ({ rentals, customers, cl
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" onClick={handleCloseModal} className="px-4 py-2 bg-gray-200 dark:bg-gray-600 rounded">Hủy</button>
-            <button type="submit" className="px-4 py-2 bg-primary-600 text-white rounded">Tạo</button>
+            <button type="submit" className="px-4 py-2 bg-primary-600 text-white rounded">{rentalToEdit ? 'Lưu Thay Đổi' : 'Tạo'}</button>
           </div>
         </form>
       </Modal>
@@ -615,6 +704,14 @@ export const RentalsPage: React.FC<RentalsPageProps> = ({ rentals, customers, cl
             onConfirmReturn={(rental) => {
                 setSelectedActiveRental(null);
                 setRentalToConfirmReturn(rental);
+            }}
+            onEdit={(rental) => {
+                setSelectedActiveRental(null);
+                setRentalToEdit(rental);
+            }}
+            onDelete={(rental) => {
+                setSelectedActiveRental(null);
+                setRentalToDelete(rental);
             }}
         />
       )}

@@ -4,6 +4,8 @@ import { Modal } from './shared/Modal';
 import { format } from 'date-fns';
 import { parseISO } from 'date-fns/parseISO';
 import { useAuth } from './AuthContext';
+import { PencilIcon } from './icons/PencilIcon';
+import { TrashIcon } from './icons/TrashIcon';
 
 interface ActiveRentalDetailModalProps {
   rental: Rental;
@@ -11,9 +13,11 @@ interface ActiveRentalDetailModalProps {
   items: ClothingItem[]; // This is the full list of all clothing items
   onClose: () => void;
   onConfirmReturn: (rental: Rental) => void;
+  onEdit: (rental: Rental) => void;
+  onDelete: (rental: Rental) => void;
 }
 
-export const ActiveRentalDetailModal: React.FC<ActiveRentalDetailModalProps> = ({ rental, customer, items, onClose, onConfirmReturn }) => {
+export const ActiveRentalDetailModal: React.FC<ActiveRentalDetailModalProps> = ({ rental, customer, items, onClose, onConfirmReturn, onEdit, onDelete }) => {
   const { user } = useAuth();
   const itemsMap = new Map<number, ClothingItem>(items.map(i => [i.id, i]));
     
@@ -58,15 +62,37 @@ export const ActiveRentalDetailModal: React.FC<ActiveRentalDetailModalProps> = (
             </div>
         )}
 
-        <div className="flex justify-end gap-2 pt-4">
-          <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors">
-            Đóng
-          </button>
-          {user?.role === 'admin' && (
-            <button type="button" onClick={() => onConfirmReturn(rental)} className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-semibold">
-                Đánh dấu đã trả
-            </button>
-          )}
+        <div className="flex justify-between items-center gap-2 pt-4">
+            <div>
+                {user?.role === 'admin' && (
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => onEdit(rental)}
+                        className="p-2 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                        title="Chỉnh sửa lượt thuê"
+                    >
+                        <PencilIcon className="h-5 w-5" />
+                    </button>
+                    <button
+                        onClick={() => onDelete(rental)}
+                        className="p-2 text-red-500 rounded-lg hover:bg-red-100 dark:hover:bg-gray-700 transition-colors"
+                        title="Xóa lượt thuê"
+                    >
+                        <TrashIcon className="h-5 w-5" />
+                    </button>
+                </div>
+                )}
+            </div>
+            <div className="flex items-center gap-2">
+                <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors">
+                    Đóng
+                </button>
+                {user?.role === 'admin' && (
+                    <button type="button" onClick={() => onConfirmReturn(rental)} className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-semibold">
+                        Đánh dấu đã trả
+                    </button>
+                )}
+            </div>
         </div>
       </div>
     </Modal>
