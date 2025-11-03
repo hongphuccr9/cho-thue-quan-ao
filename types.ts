@@ -26,4 +26,5 @@ export interface Rental {
   totalPrice?: number; // Optional, calculated on return
   notes?: string;
   discountPercent?: number; // Discount percentage (e.g., 10 for 10%)
+  surcharge?: number; // Optional, for extra fees on return
 }

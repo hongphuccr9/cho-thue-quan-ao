@@ -129,7 +129,7 @@ const MainLayout: React.FC<{user: User}> = ({ user }) => {
     setRentals(prev => prev.map(r => r.id === rentalToUpdate.id ? updatedRentalFromDb : r));
   };
 
-  const returnRental = async (rentalId: number): Promise<Rental | undefined> => {
+  const returnRental = async (rentalId: number, surcharge: number = 0): Promise<Rental | undefined> => {
     const rentalToReturn = rentals.find(r => r.id === rentalId);
     if (!rentalToReturn) return undefined;
     
@@ -147,9 +147,14 @@ const MainLayout: React.FC<{user: User}> = ({ user }) => {
     const grossPrice = totalDays * dailyRate;
     const discount = rentalToReturn.discountPercent || 0;
     const discountAmount = grossPrice * (discount / 100);
-    const totalPrice = grossPrice - discountAmount;
+    const finalPrice = grossPrice - discountAmount + surcharge;
 
-    const updatedRentalData: Rental = { ...rentalToReturn, returnDate: returnDate.toISOString(), totalPrice: Math.round(totalPrice) };
+    const updatedRentalData: Rental = { 
+      ...rentalToReturn, 
+      returnDate: returnDate.toISOString(), 
+      totalPrice: Math.round(finalPrice),
+      surcharge: surcharge 
+    };
     
     const updatedRentalFromDb = await db.updateRental(updatedRentalData);
     setRentals(prev => prev.map(r => r.id === rentalId ? updatedRentalFromDb : r));

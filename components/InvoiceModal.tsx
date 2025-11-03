@@ -18,7 +18,6 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ rental, customer, it
   const returnDate = parseISO(rental.returnDate);
   const daysRented = Math.max(1, differenceInCalendarDays(returnDate, rentalDate) + 1);
 
-  // FIX: Explicitly typing the Map ensures that .get() returns a correctly typed value (ClothingItem | undefined) instead of `unknown`, resolving multiple property access errors.
   const itemsMap = new Map<number, ClothingItem>(items.map(item => [item.id, item]));
 
   const subtotal = rental.rentedItems.reduce((acc, rentedItem) => {
@@ -42,9 +41,9 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ rental, customer, it
     }
 
     html2canvas(invoiceElement, { 
-      scale: 2, // Tăng độ phân giải của ảnh
+      scale: 2, 
       useCORS: true, 
-      backgroundColor: document.body.classList.contains('dark') ? '#1f2937' : '#ffffff' // Xử lý nền cho dark mode
+      backgroundColor: document.body.classList.contains('dark') ? '#1f2937' : '#ffffff' 
     }).then((canvas: HTMLCanvasElement) => {
         const link = document.createElement('a');
         link.download = `hoa-don-${rental.id}.png`;
@@ -113,6 +112,10 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ rental, customer, it
       data.push([null, null, null, { v: `Giảm giá (${discountPercent}%):`, s: totalLabelStyle }, { v: -discountAmount, t: 'n', z: currencyFormat }]);
     }
     
+    if (rental.surcharge && rental.surcharge > 0) {
+      data.push([null, null, null, { v: `Phụ thu:`, s: totalLabelStyle }, { v: rental.surcharge, t: 'n', z: currencyFormat }]);
+    }
+
     data.push([null, null, null, { v: 'Tổng cộng:', s: totalLabelStyle }, { v: rental.totalPrice ?? 0, t: 'n', z: currencyFormat, s: totalValueStyle }]);
 
     const ws = XLSX.utils.aoa_to_sheet(data);
@@ -122,11 +125,11 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ rental, customer, it
     ];
 
     ws['!cols'] = [
-      { wch: 35 }, // Món Đồ
-      { wch: 20 }, // Đơn Giá/Ngày
-      { wch: 10 }, // Số Lượng
-      { wch: 15 }, // Số Ngày Thuê
-      { wch: 20 }  // Thành Tiền
+      { wch: 35 }, 
+      { wch: 20 }, 
+      { wch: 10 }, 
+      { wch: 15 }, 
+      { wch: 20 }  
     ];
     
     XLSX.utils.book_append_sheet(wb, ws, ws_name);
@@ -205,6 +208,14 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ rental, customer, it
                             <span className="text-gray-500 dark:text-gray-400">Giảm giá ({discountPercent}%):</span>
                             <span className="font-semibold text-green-600 dark:text-green-400 ml-2">
                                 - {discountAmount.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
+                            </span>
+                        </div>
+                    )}
+                    {rental.surcharge && rental.surcharge > 0 && (
+                        <div>
+                            <span className="text-gray-500 dark:text-gray-400">Phụ thu:</span>
+                            <span className="font-semibold text-red-600 dark:text-red-400 ml-2">
+                                + {rental.surcharge.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
                             </span>
                         </div>
                     )}

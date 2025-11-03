@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import type { Rental, Customer, ClothingItem } from '../types';
 import { Card } from './shared/Card';
 import { Modal } from './shared/Modal';
@@ -16,7 +16,7 @@ interface RentalsPageProps {
   rentals: Rental[];
   customers: Customer[];
   clothingItems: ClothingItem[];
-  returnRental: (rentalId: number) => Promise<Rental | undefined>;
+  returnRental: (rentalId: number, surcharge: number) => Promise<Rental | undefined>;
   addRental: (rental: Omit<Rental, 'id' | 'totalPrice'>) => Promise<void>;
   addCustomer: (customer: Omit<Customer, 'id'>) => Promise<Customer>;
   rentedItemCounts: Map<number, number>;
@@ -153,6 +153,9 @@ const RentalRow: React.FC<RentalRowProps> = ({rental, customer, clothingMap, onI
     )
 }
 
+// FIX: Define a specific type for sortable keys to ensure type safety.
+type SortableRentalKeys = 'customerName' | 'rentalDate' | 'dueDate' | 'returnDate' | 'totalPrice';
+
 export const RentalsPage: React.FC<RentalsPageProps> = ({ rentals, customers, clothingItems, returnRental, addRental, addCustomer, rentedItemCounts, deleteRental, updateRental }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRentalForInvoice, setSelectedRentalForInvoice] = useState<Rental | null>(null);
@@ -160,6 +163,7 @@ export const RentalsPage: React.FC<RentalsPageProps> = ({ rentals, customers, cl
   const [selectedActiveRental, setSelectedActiveRental] = useState<Rental | null>(null);
   const [rentalToDelete, setRentalToDelete] = useState<Rental | null>(null);
   const [rentalToEdit, setRentalToEdit] = useState<Rental | null>(null);
+  const [surcharge, setSurcharge] = useState<number>(0);
   const { user } = useAuth();
   
   const todayString = format(new Date(), 'yyyy-MM-dd');
@@ -170,10 +174,10 @@ export const RentalsPage: React.FC<RentalsPageProps> = ({ rentals, customers, cl
   const initialNewCustomerState = { name: '', phone: '', address: '' };
   const [newCustomer, setNewCustomer] = useState(initialNewCustomerState);
 
-  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'ascending' | 'descending' }>({ key: 'returnDate', direction: 'descending' });
+  // FIX: Use the specific SortableRentalKeys type for the sortConfig state.
+  const [sortConfig, setSortConfig] = useState<{ key: SortableRentalKeys; direction: 'ascending' | 'descending' }>({ key: 'returnDate', direction: 'descending' });
   const [searchTerm, setSearchTerm] = useState('');
 
-  // FIX: Explicitly typing maps to prevent type inference issues.
   const customerMap = useMemo(() => new Map<number, Customer>(customers.map(c => [c.id, c])), [customers]);
   const clothingMap = useMemo(() => new Map<number, ClothingItem>(clothingItems.map(c => [c.id, c])), [clothingItems]);
 
@@ -191,9 +195,9 @@ export const RentalsPage: React.FC<RentalsPageProps> = ({ rentals, customers, cl
     }
   }, [rentalToEdit]);
   
-  const getItemsForRental = (rental: Rental): ClothingItem[] => {
+  const getItemsForRental = useCallback((rental: Rental): ClothingItem[] => {
     return rental.rentedItems.map(({itemId}) => clothingMap.get(itemId)).filter((i): i is ClothingItem => !!i);
-  }
+  }, [clothingMap])
   
   const filteredRentals = useMemo(() => {
     if (!searchTerm) {
@@ -213,7 +217,7 @@ export const RentalsPage: React.FC<RentalsPageProps> = ({ rentals, customers, cl
 
       return false;
     });
-  }, [searchTerm, rentals, customerMap]);
+  }, [searchTerm, rentals, customerMap, getItemsForRental]);
 
 
   const { activeRentals, pastRentals } = useMemo(() => {
@@ -233,13 +237,11 @@ export const RentalsPage: React.FC<RentalsPageProps> = ({ rentals, customers, cl
       
       const combined = new Map<number, ClothingItem>();
       
-      // Add all items from the current rental being edited
       itemsInThisRental.forEach(id => {
         const item = clothingMap.get(id);
         if (item) combined.set(id, item);
       });
       
-      // Add all other available items
       availableNowItems.forEach(item => {
         combined.set(item.id, item);
       });
@@ -247,23 +249,28 @@ export const RentalsPage: React.FC<RentalsPageProps> = ({ rentals, customers, cl
       return Array.from(combined.values()).sort((a,b) => a.name.localeCompare(b.name));
   }, [clothingItems, rentedItemCounts, rentalToEdit, clothingMap]);
 
+  // FIX: Refactor sorting logic for type safety. This prevents errors from comparing different types (e.g., string vs. number) and from unsafe property access.
   const sortedPastRentals = useMemo(() => {
     const sortableItems = [...pastRentals];
     if (sortConfig) {
         sortableItems.sort((a, b) => {
-            const getSortValue = (rental: Rental, key: string) => {
+            const key = sortConfig.key;
+
+            const getSortValue = (rental: Rental) => {
                 switch(key) {
                     case 'customerName': return customerMap.get(rental.customerId)?.name || '';
                     case 'rentalDate':
                     case 'dueDate':
-                    case 'returnDate': return rental[key] ? parseISO(rental[key] as string).getTime() : 0;
+                    case 'returnDate': {
+                        const dateValue = rental[key];
+                        return dateValue ? parseISO(dateValue).getTime() : 0;
+                    }
                     case 'totalPrice': return rental.totalPrice ?? null;
-                    default: return rental[key as keyof Rental];
                 }
             };
-
-            const aValue = getSortValue(a, sortConfig.key);
-            const bValue = getSortValue(b, sortConfig.key);
+            
+            const aValue = getSortValue(a);
+            const bValue = getSortValue(b);
             
             if (aValue === null) return 1;
             if (bValue === null) return -1;
@@ -280,7 +287,7 @@ export const RentalsPage: React.FC<RentalsPageProps> = ({ rentals, customers, cl
     return sortableItems;
   }, [pastRentals, sortConfig, customerMap]);
   
-  const requestSort = (key: string) => {
+  const requestSort = (key: SortableRentalKeys) => {
     let direction: 'ascending' | 'descending' = 'ascending';
     if (sortConfig && sortConfig.key === key && sortConfig.direction === 'ascending') {
         direction = 'descending';
@@ -365,13 +372,11 @@ export const RentalsPage: React.FC<RentalsPageProps> = ({ rentals, customers, cl
     setNewRental(prev => {
       const existingItemIndex = prev.rentedItems.findIndex(i => i.itemId === itemId);
       if (existingItemIndex > -1) {
-        // Item exists, so remove it
         return {
           ...prev,
           rentedItems: prev.rentedItems.filter(i => i.itemId !== itemId),
         };
       } else {
-        // Item doesn't exist, add it with quantity 1
         return {
           ...prev,
           rentedItems: [...prev.rentedItems, { itemId: itemId, quantity: 1 }],
@@ -408,6 +413,7 @@ export const RentalsPage: React.FC<RentalsPageProps> = ({ rentals, customers, cl
             'Ngày Hẹn Trả': format(parseISO(rental.dueDate), 'dd/MM/yyyy'),
             'Ngày Đã Trả': rental.returnDate ? format(parseISO(rental.returnDate), 'dd/MM/yyyy') : 'Chưa trả',
             'Giảm giá (%)': rental.discountPercent || 0,
+            'Phụ thu (VND)': rental.surcharge || 0,
             'Tổng Tiền (VND)': rental.totalPrice ?? 'N/A',
             'Ghi Chú': rental.notes || ''
         };
@@ -417,11 +423,12 @@ export const RentalsPage: React.FC<RentalsPageProps> = ({ rentals, customers, cl
 
   const handleConfirmReturn = async () => {
     if (rentalToConfirmReturn) {
-      const updatedRental = await returnRental(rentalToConfirmReturn.id);
+      const updatedRental = await returnRental(rentalToConfirmReturn.id, surcharge);
       if (updatedRental) {
         setSelectedRentalForInvoice(updatedRental);
       }
       setRentalToConfirmReturn(null);
+      setSurcharge(0);
     }
   };
 
@@ -574,18 +581,18 @@ export const RentalsPage: React.FC<RentalsPageProps> = ({ rentals, customers, cl
               }) : <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Không có đồ nào có sẵn.</p>}
             </div>
           </div>
-          <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex flex-row gap-4">
               <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Ngày thuê</label>
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300">Ngày thuê</label>
                 <input type="date" value={newRental.rentalDate} onChange={e => setNewRental(p => ({...p, rentalDate: e.target.value}))} className="mt-1 block w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600" required />
               </div>
               <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Ngày hẹn trả</label>
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300">Ngày hẹn trả</label>
                 <input type="date" value={newRental.dueDate} onChange={e => setNewRental(p => ({...p, dueDate: e.target.value}))} className="mt-1 block w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600" required />
               </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Giảm giá (%)</label>
+            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300">Giảm giá (%)</label>
             <input type="number" value={newRental.discountPercent} onChange={e => setNewRental(p => ({...p, discountPercent: e.target.value}))} className="mt-1 block w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600" placeholder="Ví dụ: 10" min="0" max="100"/>
           </div>
           <div>
@@ -670,15 +677,36 @@ export const RentalsPage: React.FC<RentalsPageProps> = ({ rentals, customers, cl
         >
             <div className="space-y-4">
                 <p className="text-gray-700 dark:text-gray-300">
-                    Bạn có chắc chắn muốn đánh dấu lượt thuê cho khách hàng "<strong>{customerMap.get(rentalToConfirmReturn.customerId)?.name}</strong>" là đã trả không?
+                    Xác nhận trả đồ cho khách hàng "<strong>{customerMap.get(rentalToConfirmReturn.customerId)?.name}</strong>"?
                 </p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Hành động này sẽ tính toán tổng tiền và tạo hóa đơn.
-                </p>
+                 <div>
+                    <label htmlFor="surcharge" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Phụ thu (nếu có)
+                    </label>
+                    <div className="mt-1 relative rounded-md shadow-sm">
+                        <input
+                            type="number"
+                            name="surcharge"
+                            id="surcharge"
+                            className="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600 pr-12"
+                            placeholder="0"
+                            value={surcharge || ''}
+                            onChange={(e) => setSurcharge(Number(e.target.value))}
+                            min="0"
+                        />
+                        <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                            <span className="text-gray-500 sm:text-sm">VND</span>
+                        </div>
+                    </div>
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Nhập chi phí phát sinh như sửa chữa, giặt ủi, v.v.</p>
+                </div>
                 <div className="flex justify-end gap-2 pt-4">
                     <button 
                         type="button" 
-                        onClick={() => setRentalToConfirmReturn(null)} 
+                        onClick={() => {
+                            setRentalToConfirmReturn(null);
+                            setSurcharge(0);
+                        }} 
                         className="px-4 py-2 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
                     >
                         Hủy

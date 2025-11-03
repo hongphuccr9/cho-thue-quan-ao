@@ -74,7 +74,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ clothingItems, customers, 
     { title: 'Quá Hạn Trả', value: overdueRentals.length, isWarning: true },
   ];
   
-  // FIX: Explicitly type the Map to ensure .get() returns a correctly typed value (ClothingItem | undefined) instead of `unknown`, which causes downstream property access errors.
   const clothingItemMap = new Map<number, ClothingItem>(clothingItems.map(item => [item.id, item]));
 
   const topSpendingCustomers = useMemo(() => {
@@ -202,8 +201,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ clothingItems, customers, 
                     <XAxis dataKey="name" tick={{ fill: 'currentColor', fontSize: 12 }} />
                     <YAxis tick={{ fill: 'currentColor', fontSize: 12 }} tickFormatter={(value: number) => new Intl.NumberFormat('vi-VN').format(value)}/>
                     <Tooltip cursor={{fill: 'rgba(128, 128, 128, 0.1)'}} content={<CustomTooltip />}/>
-                    {/* FIX: Changed type of `entry` parameter to `{ payload?: any }` to resolve TypeScript error on `entry.payload.name`. */}
-                    <Legend formatter={(value, entry: { payload?: any }) => (<span className="text-gray-800 dark:text-white">{entry.payload?.name || value}</span>)} />
+                    {/* FIX: Changed type of `entry` parameter to `any` to resolve TypeScript error on `entry.payload.name`. */}
+                    <Legend formatter={(value, entry: any) => (<span className="text-gray-800 dark:text-white">{entry.payload?.name || value}</span>)} />
                     <Bar dataKey="DoanhThu" name="Doanh Thu" fill="#3b82f6" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 )}
@@ -213,8 +212,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ clothingItems, customers, 
                     <XAxis dataKey="name" tick={{ fill: 'currentColor', fontSize: 12 }} />
                     <YAxis tick={{ fill: 'currentColor', fontSize: 12 }} tickFormatter={(value: number) => new Intl.NumberFormat('vi-VN').format(value)}/>
                     <Tooltip cursor={{fill: 'rgba(128, 128, 128, 0.1)'}} content={<CustomTooltip />}/>
-                    {/* FIX: Changed type of `entry` parameter to `{ payload?: any }` to resolve TypeScript error on `entry.payload.name`. */}
-                    <Legend formatter={(value, entry: { payload?: any }) => (<span className="text-gray-800 dark:text-white">{entry.payload?.name || value}</span>)} />
+                    {/* FIX: Changed type of `entry` parameter to `any` to resolve TypeScript error on `entry.payload.name`. */}
+                    <Legend formatter={(value, entry: any) => (<span className="text-gray-800 dark:text-white">{entry.payload?.name || value}</span>)} />
                     <Line type="monotone" dataKey="DoanhThu" name="Doanh Thu" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 8, stroke: '#3b82f6', fill: '#fff', strokeWidth: 2 }}/>
                   </LineChart>
                 )}
@@ -230,8 +229,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ clothingItems, customers, 
                     <XAxis dataKey="name" tick={{ fill: 'currentColor', fontSize: 12 }} />
                     <YAxis tick={{ fill: 'currentColor', fontSize: 12 }} tickFormatter={(value: number) => new Intl.NumberFormat('vi-VN').format(value)}/>
                     <Tooltip cursor={{fill: 'rgba(128, 128, 128, 0.1)'}} content={<CustomTooltip />}/>
-                    {/* FIX: Changed type of `entry` parameter to `{ payload?: any }` to resolve TypeScript error on `entry.payload.name`. */}
-                    <Legend formatter={(value, entry: { payload?: any }) => (<span className="text-gray-800 dark:text-white">{entry.payload?.name || value}</span>)} />
+                    {/* FIX: Changed type of `entry` parameter to `any` to resolve TypeScript error on `entry.payload.name`. */}
+                    <Legend formatter={(value, entry: any) => (<span className="text-gray-800 dark:text-white">{entry.payload?.name || value}</span>)} />
                     <Area type="monotone" dataKey="DoanhThu" name="Doanh Thu" stroke="#3b82f6" strokeWidth={2} fillOpacity={1} fill="url(#colorDoanhThu)" />
                   </AreaChart>
                 )}

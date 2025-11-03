@@ -126,7 +126,16 @@ export const deleteRental = async (id: number): Promise<void> => {
 /*
     GHI CHÚ VỀ CẤU TRÚC DATABASE SUPABASE:
 
-    Bạn cần tạo 3 bảng trong Supabase project của bạn:
+    **LỖI "Could not find column 'surcharge'"?**
+    Lỗi này xảy ra khi database Supabase của bạn thiếu cột `surcharge` trong bảng `rentals`.
+    Để khắc phục, hãy vào Supabase dashboard, mở Table Editor, chọn bảng `rentals` và thêm một cột mới với các thông tin sau:
+    - Name: surcharge
+    - Type: float8
+    - Allow nullable: BẬT (checked)
+
+    ---
+
+    Bạn cần tạo 3 bảng trong Supabase project của bạn với cấu trúc sau:
 
     1. Bảng `clothing_items`:
         - id: int8 (primary key, generated always as identity)
@@ -152,6 +161,7 @@ export const deleteRental = async (id: number): Promise<void> => {
         - totalPrice: float8 (nullable)
         - notes: text (nullable)
         - discountPercent: float8 (nullable)
+        - surcharge: float8 (nullable) // <<< CỘT NÀY CẦN ĐƯỢC THÊM VÀO
 
     Đảm bảo bật Row Level Security (RLS) cho các bảng và tạo policy cho phép user "anon" có thể đọc và ghi dữ liệu.
     Ví dụ policy cho phép đọc tất cả (select):
