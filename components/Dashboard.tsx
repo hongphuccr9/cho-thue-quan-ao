@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import type { ClothingItem, Customer, Rental } from '../types';
 import { Card } from './shared/Card';
-import { format, getYear, getMonth, getWeek, isWithinInterval } from 'date-fns';
+import { format, getYear, getMonth, getWeek } from 'date-fns';
 import { parseISO } from 'date-fns/parseISO';
 import { subWeeks } from 'date-fns/subWeeks';
 import { subMonths } from 'date-fns/subMonths';
@@ -18,6 +18,24 @@ interface DashboardProps {
   rentals: Rental[];
   rentedItemCounts: Map<number, number>;
 }
+
+// Custom Tooltip for Revenue Chart
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    const value = payload[0].value;
+    return (
+      <div className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+        <p className="font-bold text-base">{data.fullName || label}</p>
+        <p className="text-sm text-primary-600 dark:text-primary-400">
+          {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value)}
+        </p>
+      </div>
+    );
+  }
+  return null;
+};
+
 
 export const Dashboard: React.FC<DashboardProps> = ({ clothingItems, customers, rentals, rentedItemCounts }) => {
   const [revenueView, setRevenueView] = useState<'week' | 'month' | 'year'>('month');
@@ -67,12 +85,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ clothingItems, customers, 
 
   const revenueData = useMemo(() => {
     const now = new Date();
-    let data: { name: string; DoanhThu: number }[] = [];
+    let data: { name: string; fullName: string; DoanhThu: number }[] = [];
     
     if (revenueView === 'month') {
         const last12Months = Array.from({ length: 12 }, (_, i) => subMonths(now, i)).reverse();
         data = last12Months.map(monthStart => ({
-            name: format(monthStart, 'MMM yyyy', { locale: vi }),
+            name: format(monthStart, 'M/yy', { locale: vi }),
+            fullName: format(monthStart, 'MMMM yyyy', { locale: vi }),
             DoanhThu: 0
         }));
         rentals.forEach(rental => {
@@ -86,7 +105,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ clothingItems, customers, 
     } else if (revenueView === 'week') {
         const last12Weeks = Array.from({ length: 12 }, (_, i) => subWeeks(now, i)).reverse();
         data = last12Weeks.map(weekStart => ({
-            name: `Tuần ${getWeek(weekStart, { locale: vi, weekStartsOn: 1 })}`,
+            name: `T${getWeek(weekStart, { locale: vi, weekStartsOn: 1 })}`,
+            fullName: `Tuần ${getWeek(weekStart, { locale: vi, weekStartsOn: 1 })}, ${getYear(weekStart)}`,
             DoanhThu: 0
         }));
         rentals.forEach(rental => {
@@ -101,6 +121,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ clothingItems, customers, 
         const last5Years = Array.from({ length: 5 }, (_, i) => subYears(now, i)).reverse();
         data = last5Years.map(yearStart => ({
             name: format(yearStart, 'yyyy'),
+            fullName: `Năm ${format(yearStart, 'yyyy')}`,
             DoanhThu: 0
         }));
         rentals.forEach(rental => {
@@ -147,12 +168,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ clothingItems, customers, 
                     <XAxis dataKey="name" tick={{ fill: 'currentColor', fontSize: 12 }} />
                     <YAxis tick={{ fill: 'currentColor', fontSize: 12 }} tickFormatter={(value: number) => new Intl.NumberFormat('vi-VN').format(value)}/>
                     <Tooltip 
-                      formatter={(value: number, name: string) => [`${value.toLocaleString('vi-VN')} VND`, name]} 
                       cursor={{fill: 'rgba(128, 128, 128, 0.1)'}}
-                      contentStyle={{ backgroundColor: 'rgba(31, 41, 55, 0.8)', border: 'none', color: '#fff' }}
+                      content={<CustomTooltip />}
                     />
-                    {/* FIX: The `entry` object from recharts can have an inconsistently typed `payload`. Explicitly typing `entry` as `any` resolves the type error by allowing safe access to `entry.payload`. */}
-                    <Legend formatter={(value, entry: any) => {
+                    {/* FIX: Explicitly type the 'entry' parameter in the recharts Legend formatter to resolve the 'Property 'name' does not exist on type 'unknown'' error. The 'any' type was being inferred as 'unknown' due to a strict TypeScript configuration. */}
+                    <Legend formatter={(value, entry: { payload?: { name?: string } }) => {
                         const payload = entry.payload;
                         const name = payload?.name || value;
                         return <span className="text-gray-800 dark:text-white">{name}</span>;

@@ -3,7 +3,6 @@ import type { Rental, Customer, ClothingItem } from '../types';
 import { Card } from './shared/Card';
 import { Modal } from './shared/Modal';
 import { InvoiceModal } from './InvoiceModal';
-// FIX: 'parseISO' is not a top-level export, importing from its own module path.
 import { format } from 'date-fns';
 import { parseISO } from 'date-fns/parseISO';
 import { exportToCSV } from '../utils/export';
@@ -11,6 +10,7 @@ import { ExportIcon } from './icons/ExportIcon';
 import { SearchIcon } from './icons/SearchIcon';
 import { ActiveRentalDetailModal } from './ActiveRentalDetailModal';
 import { TrashIcon } from './icons/TrashIcon';
+import { useAuth } from './AuthContext';
 
 interface RentalsPageProps {
   rentals: Rental[];
@@ -33,11 +33,12 @@ interface RentalRowProps {
 }
 
 const RentalRow: React.FC<RentalRowProps> = ({rental, customer, clothingMap, onInitiateReturn, onShowInvoice, onDelete}) => {
+    const { user } = useAuth();
     const isOverdue = !rental.returnDate && new Date() > parseISO(rental.dueDate);
     const isCompleted = !!rental.returnDate;
 
     const handleRowClick = () => {
-        if (!isCompleted && onInitiateReturn) {
+        if (!isCompleted && onInitiateReturn && user?.role === 'admin') {
             onInitiateReturn(rental);
         } else if (isCompleted && onShowInvoice) {
             onShowInvoice(rental);
@@ -49,10 +50,10 @@ const RentalRow: React.FC<RentalRowProps> = ({rental, customer, clothingMap, onI
         return `${item?.name || 'Unknown'} (x${quantity})`;
     }).join(', ');
 
-
+    const rowCursorClass = (user?.role === 'admin' && !isCompleted) || isCompleted ? 'cursor-pointer' : '';
     const rowClasses = [
         isOverdue ? "bg-red-50 dark:bg-red-900/20" : "",
-        (onInitiateReturn || onShowInvoice) ? "cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-150" : ""
+        (onInitiateReturn || onShowInvoice) ? `${rowCursorClass} hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-150` : ""
     ].filter(Boolean).join(" ");
 
 
@@ -80,13 +81,13 @@ const RentalRow: React.FC<RentalRowProps> = ({rental, customer, clothingMap, onI
           </td>
           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
             <div className="flex items-center justify-end gap-x-2">
-              {!isCompleted && onInitiateReturn && (
+              {!isCompleted && user?.role === 'admin' && onInitiateReturn && (
                 <span className="text-indigo-600 font-semibold">Xem chi tiết</span>
               )}
               {isCompleted && onShowInvoice && (
                 <span className="text-primary-600 font-semibold">Xem hóa đơn</span>
               )}
-               {isCompleted && onDelete && (
+               {isCompleted && user?.role === 'admin' && onDelete && (
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
@@ -110,6 +111,7 @@ export const RentalsPage: React.FC<RentalsPageProps> = ({ rentals, customers, cl
   const [rentalToConfirmReturn, setRentalToConfirmReturn] = useState<Rental | null>(null);
   const [selectedActiveRental, setSelectedActiveRental] = useState<Rental | null>(null);
   const [rentalToDelete, setRentalToDelete] = useState<Rental | null>(null);
+  const { user } = useAuth();
   
   const todayString = format(new Date(), 'yyyy-MM-dd');
   const initialNewRentalState = { customerId: '', rentedItems: [] as { itemId: number, quantity: number }[], rentalDate: todayString, dueDate: '', notes: '', discountPercent: '' };
@@ -348,12 +350,14 @@ export const RentalsPage: React.FC<RentalsPageProps> = ({ rentals, customers, cl
               <ExportIcon />
               <span className="hidden sm:inline">Xuất CSV</span>
             </button>
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="flex-shrink-0 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition duration-200"
-            >
-              Tạo Mới
-            </button>
+            {user?.role === 'admin' && (
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="flex-shrink-0 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition duration-200"
+              >
+                Tạo Mới
+              </button>
+            )}
         </div>
       </div>
 
@@ -454,13 +458,15 @@ export const RentalsPage: React.FC<RentalsPageProps> = ({ rentals, customers, cl
               }) : <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Không có đồ nào có sẵn.</p>}
             </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Ngày thuê</label>
-            <input type="date" value={newRental.rentalDate} onChange={e => setNewRental(p => ({...p, rentalDate: e.target.value}))} className="mt-1 block w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600" required />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Ngày hẹn trả</label>
-            <input type="date" value={newRental.dueDate} onChange={e => setNewRental(p => ({...p, dueDate: e.target.value}))} className="mt-1 block w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600" required />
+          <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Ngày thuê</label>
+                <input type="date" value={newRental.rentalDate} onChange={e => setNewRental(p => ({...p, rentalDate: e.target.value}))} className="mt-1 block w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600" required />
+              </div>
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Ngày hẹn trả</label>
+                <input type="date" value={newRental.dueDate} onChange={e => setNewRental(p => ({...p, dueDate: e.target.value}))} className="mt-1 block w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600" required />
+              </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Giảm giá (%)</label>
@@ -468,7 +474,7 @@ export const RentalsPage: React.FC<RentalsPageProps> = ({ rentals, customers, cl
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Ghi chú</label>
-            <textarea value={newRental.notes} onChange={e => setNewRental(p => ({...p, notes: e.target.value}))} className="mt-1 block w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600" rows={3} placeholder="Ví dụ: yêu cầu đặc biệt của khách, tình trạng đồ..."></textarea>
+            <textarea value={newRental.notes} onChange={e => setNewRental(p => ({...p, notes: e.target.value}))} className="mt-1 block w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600" rows={2} placeholder="Ví dụ: yêu cầu đặc biệt của khách, tình trạng đồ..."></textarea>
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" onClick={handleCloseModal} className="px-4 py-2 bg-gray-200 dark:bg-gray-600 rounded">Hủy</button>

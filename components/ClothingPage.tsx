@@ -4,6 +4,7 @@ import { Card } from './shared/Card';
 import { Modal } from './shared/Modal';
 import { exportToCSV } from '../utils/export';
 import { ExportIcon } from './icons/ExportIcon';
+import { useAuth } from './AuthContext';
 
 interface ClothingPageProps {
   clothingItems: ClothingItem[];
@@ -17,6 +18,7 @@ export const ClothingPage: React.FC<ClothingPageProps> = ({ clothingItems, addCl
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<ClothingItem | null>(null);
   const [itemToDelete, setItemToDelete] = useState<ClothingItem | null>(null);
+  const { user } = useAuth();
 
   const [newItem, setNewItem] = useState({ name: '', size: '', rentalPrice: '', quantity: '', imageUrl: '' });
   const initialEditFormState = { name: '', size: '', rentalPrice: '', quantity: '', imageUrl: '' };
@@ -171,12 +173,14 @@ export const ClothingPage: React.FC<ClothingPageProps> = ({ clothingItems, addCl
               <ExportIcon />
               Xuất CSV
             </button>
-            <button
-              onClick={() => setIsAddModalOpen(true)}
-              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition duration-200"
-            >
-              Thêm Món Mới
-            </button>
+            {user?.role === 'admin' && (
+              <button
+                onClick={() => setIsAddModalOpen(true)}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition duration-200"
+              >
+                Thêm Món Mới
+              </button>
+            )}
         </div>
       </div>
       
@@ -198,20 +202,22 @@ export const ClothingPage: React.FC<ClothingPageProps> = ({ clothingItems, addCl
                   <span className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${isAvailable ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}`}>
                     {isAvailable ? 'Còn hàng' : 'Hết hàng'}
                   </span>
-                  <div className="flex items-center gap-1">
-                    <button 
-                      onClick={() => setEditingItem(item)} 
-                      className="px-3 py-1 text-sm text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300 font-medium rounded-md hover:bg-primary-100 dark:hover:bg-gray-700"
-                    >
-                      Sửa
-                    </button>
-                     <button 
-                      onClick={() => setItemToDelete(item)} 
-                      className="px-3 py-1 text-sm text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 font-medium rounded-md hover:bg-red-100 dark:hover:bg-gray-700"
-                    >
-                      Xóa
-                    </button>
-                  </div>
+                  {user?.role === 'admin' && (
+                    <div className="flex items-center gap-1">
+                      <button 
+                        onClick={() => setEditingItem(item)} 
+                        className="px-3 py-1 text-sm text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300 font-medium rounded-md hover:bg-primary-100 dark:hover:bg-gray-700"
+                      >
+                        Sửa
+                      </button>
+                       <button 
+                        onClick={() => setItemToDelete(item)} 
+                        className="px-3 py-1 text-sm text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 font-medium rounded-md hover:bg-red-100 dark:hover:bg-gray-700"
+                      >
+                        Xóa
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </Card>

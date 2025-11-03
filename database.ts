@@ -13,11 +13,12 @@ import type { ClothingItem, Customer, Rental } from './types';
 //
 // Sau khi cập nhật, hãy làm mới lại trang.
 // ============================================================================
-const supabaseUrl = 'https://yjbcislrcfdimttrffvs.supabase.co'; // <<<=== THAY THẾ TẠI ĐÂY
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlqYmNpc2xyY2ZkaW10dHJmZnZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE5MTQzNDIsImV4cCI6MjA3NzQ5MDM0Mn0.02zHQF5jnQTtrC9o_J6TFtOlnSr32UFJ3D2PngQCF6Y'; // <<<=== THAY THẾ TẠI ĐÂY
+// FIX: Explicitly type supabaseUrl and supabaseAnonKey as string to avoid TypeScript from inferring them as overly specific literal types, which causes comparison errors.
+const supabaseUrl: string = 'https://yjbcislrcfdimttrffvs.supabase.co'; // <<<=== THAY THẾ TẠI ĐÂY
+const supabaseAnonKey: string = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlqYmNpc2xyY2ZkaW10dHJmZnZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE5MTQzNDIsImV4cCI6MjA3NzQ5MDM0Mn0.02zHQF5jnQTtrC9o_J6TFtOlnSr32UFJ3D2PngQCF6Y'; // <<<=== THAY THẾ TẠI ĐÂY
 
 // Chúng ta export biến này để App.tsx có thể kiểm tra xem thông tin đã được cấu hình chưa.
-export const isSupabaseConfigured = !!(supabaseUrl && supabaseAnonKey);
+export const isSupabaseConfigured = supabaseUrl !== 'YOUR_SUPABASE_URL' && supabaseAnonKey !== 'YOUR_SUPABASE_ANON_KEY';
 
 const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKey);
 

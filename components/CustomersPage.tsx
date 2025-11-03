@@ -6,6 +6,7 @@ import { UserCircleIcon } from './icons/UserCircleIcon';
 import { exportToCSV } from '../utils/export';
 import { ExportIcon } from './icons/ExportIcon';
 import { CustomerDetailModal } from './CustomerDetailModal';
+import { useAuth } from './AuthContext';
 
 interface CustomersPageProps {
   customers: Customer[];
@@ -25,6 +26,7 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({ customers, addCust
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const initialEditFormState = { name: '', phone: '', address: '' };
   const [editForm, setEditForm] = useState(initialEditFormState);
+  const { user } = useAuth();
 
   useEffect(() => {
     if (editingCustomer) {
@@ -110,12 +112,14 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({ customers, addCust
               <ExportIcon />
               Xuất CSV
             </button>
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition duration-200"
-            >
-              Thêm Khách Hàng Mới
-            </button>
+            {user?.role === 'admin' && (
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition duration-200"
+              >
+                Thêm Khách Hàng Mới
+              </button>
+            )}
         </div>
       </div>
 
@@ -144,26 +148,28 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({ customers, addCust
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{customer.address}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300 text-center">{customerRentals(customer.id).length}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex items-center justify-end gap-x-4">
-                          <button
-                              onClick={(e) => {
-                                  e.stopPropagation();
-                                  setEditingCustomer(customer);
-                              }}
-                              className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-200 font-semibold"
-                          >
-                              Sửa
-                          </button>
-                          <button
-                              onClick={(e) => {
-                                  e.stopPropagation();
-                                  setCustomerToDelete(customer);
-                              }}
-                              className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-200 font-semibold"
-                          >
-                              Xóa
-                          </button>
-                      </div>
+                      {user?.role === 'admin' && (
+                        <div className="flex items-center justify-end gap-x-4">
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditingCustomer(customer);
+                                }}
+                                className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-200 font-semibold"
+                            >
+                                Sửa
+                            </button>
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setCustomerToDelete(customer);
+                                }}
+                                className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-200 font-semibold"
+                            >
+                                Xóa
+                            </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}

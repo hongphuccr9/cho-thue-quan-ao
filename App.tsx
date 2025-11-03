@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './components/Dashboard';
 import { ClothingPage } from './components/ClothingPage';
@@ -10,6 +10,9 @@ import type { View, ClothingItem, Customer, Rental } from './types';
 import { MenuIcon } from './components/icons/MenuIcon';
 import { differenceInCalendarDays } from 'date-fns';
 import { parseISO } from 'date-fns/parseISO';
+import { AuthProvider, useAuth } from './components/AuthContext';
+import { LoginPage } from './components/LoginPage';
+import type { User } from './components/AuthContext';
 
 const viewTitles: Record<View, string> = {
   dashboard: 'Bảng Điều Khiển',
@@ -18,17 +21,16 @@ const viewTitles: Record<View, string> = {
   rentals: 'Quản Lý Lượt Thuê'
 };
 
+const MainLayout: React.FC<{user: User}> = ({ user }) => {
+  const [view, setView] = React.useState<View>('dashboard');
+  const [clothingItems, setClothingItems] = React.useState<ClothingItem[]>([]);
+  const [customers, setCustomers] = React.useState<Customer[]>([]);
+  const [rentals, setRentals] = React.useState<Rental[]>([]);
+  const [isSidebarOpen, setSidebarOpen] = React.useState(false);
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
 
-const App: React.FC = () => {
-  const [view, setView] = useState<View>('dashboard');
-  const [clothingItems, setClothingItems] = useState<ClothingItem[]>([]);
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [rentals, setRentals] = useState<Rental[]>([]);
-  const [isSidebarOpen, setSidebarOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchData = useCallback(async () => {
+  const fetchData = React.useCallback(async () => {
     if (!isSupabaseConfigured) {
         setError('Vui lòng cấu hình thông tin Supabase trong file `database.ts` để kết nối với cơ sở dữ liệu của bạn.');
         setIsLoading(false);
@@ -54,13 +56,13 @@ const App: React.FC = () => {
     }
   }, []);
 
-  useEffect(() => {
+  React.useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  const activeRentals = useMemo(() => rentals.filter(r => !r.returnDate), [rentals]);
+  const activeRentals = React.useMemo(() => rentals.filter(r => !r.returnDate), [rentals]);
   
-  const rentedItemCounts = useMemo(() => {
+  const rentedItemCounts = React.useMemo(() => {
     const counts = new Map<number, number>();
     activeRentals.forEach(rental => {
         rental.rentedItems.forEach(({ itemId, quantity }) => {
@@ -97,7 +99,6 @@ const App: React.FC = () => {
   };
 
   const deleteCustomer = async (customerId: number) => {
-    // Error will be thrown from db layer if there's a foreign key constraint
     await db.deleteCustomer(customerId);
     setCustomers(prev => prev.filter(customer => customer.id !== customerId));
   };
@@ -186,14 +187,16 @@ const App: React.FC = () => {
 
   return (
     <div className="flex h-screen bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200">
-      <Sidebar view={view} setView={setView} isOpen={isSidebarOpen} setOpen={setSidebarOpen} />
+      <Sidebar view={view} setView={setView} isOpen={isSidebarOpen} setOpen={setSidebarOpen} user={user} />
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="flex justify-between items-center p-4 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 md:justify-end">
-           <button onClick={() => setSidebarOpen(true)} className="md:hidden p-2 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700">
-             <MenuIcon className="h-6 w-6" />
-           </button>
+          <button onClick={() => setSidebarOpen(true)} className="md:hidden p-2 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700">
+            <MenuIcon className="h-6 w-6" />
+          </button>
           <h1 className="text-xl font-semibold capitalize md:hidden">{viewTitles[view]}</h1>
-          <div className="w-10 h-10"></div>
+          <div className="text-sm font-medium text-gray-600 dark:text-gray-300">
+            Xin chào, <span className="font-bold capitalize text-primary-600 dark:text-primary-400">{user.role}</span>
+          </div>
         </header>
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 dark:bg-gray-800 p-4 sm:p-6 lg:p-8">
           {renderView()}
@@ -202,5 +205,24 @@ const App: React.FC = () => {
     </div>
   );
 };
+
+
+const AppContent: React.FC = () => {
+    const { user } = useAuth();
+
+    if (!user) {
+        return <LoginPage />;
+    }
+
+    return <MainLayout user={user} />;
+}
+
+const App: React.FC = () => {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  );
+}
 
 export default App;

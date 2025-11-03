@@ -5,12 +5,16 @@ import { ClothingIcon } from './icons/ClothingIcon';
 import { CustomerIcon } from './icons/CustomerIcon';
 import { RentalIcon } from './icons/RentalIcon';
 import { XIcon } from './icons/XIcon';
+import { LogoutIcon } from './icons/LogoutIcon';
+import { useAuth, User } from './AuthContext';
+
 
 interface SidebarProps {
   view: View;
   setView: (view: View) => void;
   isOpen: boolean;
   setOpen: (isOpen: boolean) => void;
+  user: User;
 }
 
 const NavItem: React.FC<{
@@ -32,7 +36,8 @@ const NavItem: React.FC<{
   </button>
 );
 
-export const Sidebar: React.FC<SidebarProps> = ({ view, setView, isOpen, setOpen }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ view, setView, isOpen, setOpen, user }) => {
+  const { logout } = useAuth();
 
   const handleNavClick = (newView: View) => {
     setView(newView);
@@ -71,8 +76,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ view, setView, isOpen, setOpen
               ))}
             </nav>
           </div>
-          <div className="px-4 py-2 text-center text-sm text-gray-400">
-             © {new Date().getFullYear()} Cửa Hàng Thuê Đồ
+          
+          <div>
+            <div className="px-4 py-3 border-t border-primary-700">
+               <div className="text-sm text-gray-400">Đăng nhập với vai trò:</div>
+               <div className="font-bold text-lg capitalize">{user.role}</div>
+            </div>
+            <NavItem
+                icon={<LogoutIcon />}
+                label="Đăng xuất"
+                isActive={false}
+                onClick={logout}
+             />
+             <div className="px-4 py-2 mt-4 text-center text-xs text-gray-500">
+                © {new Date().getFullYear()} Cửa Hàng Thuê Đồ
+             </div>
           </div>
       </div>
     </>
