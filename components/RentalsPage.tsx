@@ -417,7 +417,7 @@ export const RentalsPage: React.FC<RentalsPageProps> = ({ rentals, customers, cl
           )}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Các món đồ có sẵn</label>
-            <div className="mt-1 max-h-60 overflow-y-auto border rounded p-2 bg-gray-50 dark:bg-gray-700 dark:border-gray-600 space-y-2">
+            <div className="mt-1 max-h-48 overflow-y-auto border rounded p-2 bg-gray-50 dark:bg-gray-700 dark:border-gray-600 space-y-2">
               {availableItems.length > 0 ? availableItems.map(item => {
                 const selectedItem = newRental.rentedItems.find(i => i.itemId === item.id);
                 const isSelected = !!selectedItem;
@@ -458,7 +458,7 @@ export const RentalsPage: React.FC<RentalsPageProps> = ({ rentals, customers, cl
               }) : <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Không có đồ nào có sẵn.</p>}
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Ngày thuê</label>
                 <input type="date" value={newRental.rentalDate} onChange={e => setNewRental(p => ({...p, rentalDate: e.target.value}))} className="mt-1 block w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600" required />

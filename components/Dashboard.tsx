@@ -74,7 +74,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ clothingItems, customers, 
     { title: 'Quá Hạn Trả', value: overdueRentals.length, isWarning: true },
   ];
   
-  const clothingItemMap = new Map(clothingItems.map(item => [item.id, item]));
+  // FIX: Explicitly type the Map to ensure .get() returns a correctly typed value (ClothingItem | undefined) instead of `unknown`, which causes downstream property access errors.
+  const clothingItemMap = new Map<number, ClothingItem>(clothingItems.map(item => [item.id, item]));
 
   const topSpendingCustomers = useMemo(() => {
     const now = new Date();
