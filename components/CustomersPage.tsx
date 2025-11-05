@@ -11,7 +11,8 @@ import { useAuth } from './AuthContext';
 interface CustomersPageProps {
   customers: Customer[];
   addCustomer: (customer: Omit<Customer, 'id'>) => Promise<Customer>;
-  updateCustomer: (customer: Customer) => Promise<void>;
+  // FIX: Updated prop type to match the return value from the database operation.
+  updateCustomer: (customer: Customer) => Promise<Customer>;
   deleteCustomer: (customerId: number) => Promise<void>;
   rentals: Rental[];
   clothingItems: ClothingItem[];

@@ -13,9 +13,10 @@ import type { ValidatedClothingItem } from './ClothingImportModal';
 
 interface ClothingPageProps {
   clothingItems: ClothingItem[];
-  addClothingItem: (item: Omit<ClothingItem, 'id'>) => Promise<void>;
-  addMultipleClothingItems: (items: Omit<ClothingItem, 'id'>[]) => Promise<void>;
-  updateClothingItem: (item: ClothingItem) => Promise<void>;
+  // FIX: Updated prop types to match the return values from the database operations.
+  addClothingItem: (item: Omit<ClothingItem, 'id'>) => Promise<ClothingItem>;
+  addMultipleClothingItems: (items: Omit<ClothingItem, 'id'>[]) => Promise<ClothingItem[]>;
+  updateClothingItem: (item: ClothingItem) => Promise<ClothingItem>;
   deleteClothingItem: (id: number) => Promise<void>;
   rentedItemCounts: Map<number, number>;
   itemsWithRentalHistory: Set<number>;

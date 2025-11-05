@@ -10,8 +10,8 @@ export const Footer: React.FC = () => {
           </div>
           <div className="mt-8 md:mt-0 md:order-1 text-center text-sm text-gray-500 dark:text-gray-400">
             <p className="font-semibold text-base text-gray-800 dark:text-gray-200">Cửa Hàng Thuê Đồ UI</p>
-            <p>Địa chỉ: 123 Đường Thời Trang, Quận 1, TP. Hồ Chí Minh</p>
-            <p>Số điện thoại: (028) 3812 3456</p>
+            <p>Địa chỉ: Quận 12, TP. Hồ Chí Minh</p>
+            <p>Phone/Zalo: 0888 888 888</p>
             <p className="mt-4">&copy; {new Date().getFullYear()} Cửa Hàng Thuê Đồ UI. All rights reserved.</p>
           </div>
         </div>

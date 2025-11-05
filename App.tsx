@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './components/Dashboard';
@@ -55,9 +56,11 @@ const AdminApp: React.FC<{
     return counts;
   }, [activeRentals]);
 
-  const handleDbAction = async (action: Promise<any>) => {
-      await action;
+  // FIX: Converted handleDbAction to a generic function to preserve the return type of the database action. This resolves a type mismatch where child components expected `addCustomer` to return a `Promise<Customer>`, but were receiving `Promise<void>` instead.
+  const handleDbAction = async <T,>(action: Promise<T>): Promise<T> => {
+      const result = await action;
       await fetchData();
+      return result;
   };
 
   const addClothingItem = (item: Omit<ClothingItem, 'id'>) => handleDbAction(db.addClothingItem(item));
@@ -204,6 +207,11 @@ const AppContent: React.FC = () => {
     };
 
     useEffect(() => {
+      // Đảm bảo rằng khi mở ứng dụng lần đầu, nó sẽ mặc định là trang chủ.
+      if (window.location.hash === '') {
+          window.location.hash = '#/';
+      }
+        
       fetchData();
       const handleHashChange = () => {
         setRoute(window.location.hash);

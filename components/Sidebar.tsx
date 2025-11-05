@@ -89,6 +89,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ view, setView, isOpen, setOpen
           
           <div>
             <div className="px-4 py-3 border-t border-primary-700">
+                <a href="#/" onClick={handleHomeNav} className="flex items-center gap-2 text-sm text-gray-300 hover:text-white mb-3 transition-colors">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                    <span>Trở lại trang chủ</span>
+                </a>
                <div className="text-sm text-gray-400">Đăng nhập với vai trò:</div>
                <div className="font-bold text-lg capitalize">{user.role}</div>
             </div>

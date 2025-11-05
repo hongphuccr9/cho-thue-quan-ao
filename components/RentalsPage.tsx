@@ -17,11 +17,12 @@ interface RentalsPageProps {
   customers: Customer[];
   clothingItems: ClothingItem[];
   returnRental: (rentalId: number, surcharge: number) => Promise<Rental | undefined>;
-  addRental: (rental: Omit<Rental, 'id' | 'totalPrice'>) => Promise<void>;
+  // FIX: Updated prop types to match the return values from the database operations.
+  addRental: (rental: Omit<Rental, 'id' | 'totalPrice'>) => Promise<Rental>;
   addCustomer: (customer: Omit<Customer, 'id'>) => Promise<Customer>;
   rentedItemCounts: Map<number, number>;
   deleteRental: (rentalId: number) => Promise<void>;
-  updateRental: (rental: Rental) => Promise<void>;
+  updateRental: (rental: Rental) => Promise<Rental>;
 }
 
 interface RentalRowProps {
