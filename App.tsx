@@ -175,7 +175,7 @@ const AppContent: React.FC = () => {
           setIsLoading(false);
           return;
       }
-      setIsLoading(true);
+      // setIsLoading(true); // Gây ra việc tải lại toàn bộ trang khi làm mới dữ liệu
       setError(null);
       try {
           const [itemsData, customersData, rentalsData, configData] = await Promise.all([

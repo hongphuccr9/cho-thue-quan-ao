@@ -35,6 +35,7 @@ const formatPhoneNumberForDisplay = (value: string): string => {
 export const CustomersPage: React.FC<CustomersPageProps> = ({ customers, addCustomer, rentals, clothingItems, updateCustomer, deleteCustomer }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newCustomer, setNewCustomer] = useState({ name: '', phone: '', address: '' });
+  const [addSuccessMessage, setAddSuccessMessage] = useState<string | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
@@ -108,12 +109,21 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({ customers, addCust
     }
   };
 
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setAddSuccessMessage(null);
+    setNewCustomer({ name: '', phone: '', address: '' });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newCustomer.name && newCustomer.phone && newCustomer.address) {
       await addCustomer(newCustomer);
       setNewCustomer({ name: '', phone: '', address: '' });
-      setIsModalOpen(false);
+      setAddSuccessMessage('Thêm khách hàng mới thành công!');
+      setTimeout(() => {
+        setAddSuccessMessage(null);
+      }, 3000);
     }
   };
 
@@ -259,13 +269,18 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({ customers, addCust
       )}
 
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Thêm Khách Hàng Mới">
+      <Modal isOpen={isModalOpen} onClose={handleCloseModal} title="Thêm Khách Hàng Mới">
         <form onSubmit={handleSubmit} className="space-y-4">
+          {addSuccessMessage && (
+            <div className="p-3 my-2 text-sm text-green-700 bg-green-100 rounded-md dark:bg-green-900/30 dark:text-green-200 text-center" role="alert">
+              {addSuccessMessage}
+            </div>
+          )}
           <input type="text" name="name" value={newCustomer.name} onChange={handleInputChange} placeholder="Tên khách hàng" className="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600" required />
           <input type="tel" name="phone" value={formatPhoneNumberForDisplay(newCustomer.phone)} onChange={handleInputChange} placeholder="Số điện thoại" className="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600" required />
           <input type="text" name="address" value={newCustomer.address} onChange={handleInputChange} placeholder="Địa chỉ" className="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600" required />
           <div className="flex justify-end gap-2">
-            <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 bg-gray-200 dark:bg-gray-600 rounded">Hủy</button>
+            <button type="button" onClick={handleCloseModal} className="px-4 py-2 bg-gray-200 dark:bg-gray-600 rounded">Đóng</button>
             <button type="submit" className="px-4 py-2 bg-primary-600 text-white rounded">Thêm</button>
           </div>
         </form>

@@ -170,6 +170,7 @@ export const RentalsPage: React.FC<RentalsPageProps> = ({ rentals, customers, cl
   const todayString = format(new Date(), 'yyyy-MM-dd');
   const initialNewRentalState = { customerId: '', rentedItems: [] as { itemId: number, quantity: number }[], rentalDate: todayString, dueDate: '', notes: '', discountPercent: '' };
   const [newRental, setNewRental] = useState(initialNewRentalState);
+  const [addSuccessMessage, setAddSuccessMessage] = useState<string | null>(null);
 
   const [isAddingCustomer, setIsAddingCustomer] = useState(false);
   const initialNewCustomerState = { name: '', phone: '', address: '' };
@@ -325,6 +326,7 @@ export const RentalsPage: React.FC<RentalsPageProps> = ({ rentals, customers, cl
     setNewRental(initialNewRentalState);
     setIsAddingCustomer(false);
     setNewCustomer(initialNewCustomerState);
+    setAddSuccessMessage(null);
   };
   
   const handleNewCustomerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -367,6 +369,7 @@ export const RentalsPage: React.FC<RentalsPageProps> = ({ rentals, customers, cl
                 discountPercent,
             };
             await updateRental(rentalData);
+            handleCloseModal();
         } else {
             await addRental({
                 customerId,
@@ -376,8 +379,12 @@ export const RentalsPage: React.FC<RentalsPageProps> = ({ rentals, customers, cl
                 notes: newRental.notes,
                 discountPercent,
             });
+            setNewRental(initialNewRentalState);
+            setAddSuccessMessage('Thêm lượt thuê mới thành công!');
+            setTimeout(() => {
+                setAddSuccessMessage(null);
+            }, 3000);
         }
-        handleCloseModal();
     }
   };
 
@@ -522,6 +529,11 @@ export const RentalsPage: React.FC<RentalsPageProps> = ({ rentals, customers, cl
       
       <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={rentalToEdit ? "Chỉnh Sửa Lượt Thuê" : "Tạo Lượt Thuê Mới"}>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {addSuccessMessage && !rentalToEdit && (
+            <div className="p-3 my-2 text-sm text-green-700 bg-green-100 rounded-md dark:bg-green-900/30 dark:text-green-200 text-center" role="alert">
+              {addSuccessMessage}
+            </div>
+          )}
           {isAddingCustomer ? (
             <div className="p-4 border rounded-lg bg-gray-100 dark:bg-gray-900/50 space-y-3">
               <h4 className="font-semibold text-md text-gray-800 dark:text-gray-200">Thêm Khách Hàng Mới</h4>
