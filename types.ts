@@ -1,5 +1,7 @@
 export type View = 'dashboard' | 'clothing' | 'customers' | 'rentals';
 
+export type SiteConfig = Record<string, string>;
+
 export interface ClothingItem {
   id: number;
   name: string;

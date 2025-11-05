@@ -1,17 +1,24 @@
 import React, { useState, useMemo } from 'react';
-import type { ClothingItem } from '../types';
+import type { ClothingItem, SiteConfig } from '../types';
 import { PublicLayout } from './public/PublicLayout';
 import { Card } from './shared/Card';
 import { SearchIcon } from './icons/SearchIcon';
+import type { User } from './AuthContext';
+import { HeroEditModal } from './HeroEditModal';
+import { PencilIcon } from './icons/PencilIcon';
 
 interface HomePageProps {
   clothingItems: ClothingItem[];
   rentedItemCounts: Map<number, number>;
+  user: User | null;
+  siteConfig: SiteConfig;
+  onUpdateConfig: (configs: { key: string; value: string }[]) => Promise<void>;
 }
 
-export const HomePage: React.FC<HomePageProps> = ({ clothingItems, rentedItemCounts }) => {
+export const HomePage: React.FC<HomePageProps> = ({ clothingItems, rentedItemCounts, user, siteConfig, onUpdateConfig }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [availabilityFilter, setAvailabilityFilter] = useState<'all' | 'available'>('all');
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const filteredItems = useMemo(() => {
     return clothingItems
@@ -29,18 +36,40 @@ export const HomePage: React.FC<HomePageProps> = ({ clothingItems, rentedItemCou
       })
       .sort((a, b) => a.name.localeCompare(b.name)); // Sort alphabetically
   }, [clothingItems, rentedItemCounts, searchTerm, availabilityFilter]);
+  
+  const handleSaveConfig = async (configs: { key: string; value: string }[]) => {
+      await onUpdateConfig(configs);
+      setIsEditModalOpen(false);
+  };
+
+  const heroTitle = siteConfig.hero_title || 'Bộ Sưu Tập Thời Trang Cho Thuê';
+  const heroSubtitle = siteConfig.hero_subtitle || 'Khám phá những bộ trang phục tuyệt đẹp cho mọi dịp đặc biệt. Phong cách, tiện lợi và đẳng cấp.';
+  const heroImageUrl = siteConfig.hero_image_url || 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?q=80&w=2070&auto=format&fit=crop';
 
   return (
     <PublicLayout>
       <div className="bg-white dark:bg-gray-900">
         {/* Hero Section */}
         <div className="relative isolate px-6 pt-14 lg:px-8">
-           <div className="absolute inset-0 bg-cover bg-center bg-no-repeat bg-[url('https://images.unsplash.com/photo-1556905055-8f358a7a47b2?q=80&w=2070&auto=format&fit=crop')]" style={{ zIndex: -1 }}></div>
+           <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ zIndex: -1, backgroundImage: `url('${heroImageUrl}')` }}></div>
            <div className="absolute inset-0 bg-black/50" style={{ zIndex: -1 }}></div>
+           
+           {user?.role === 'admin' && (
+             <div className="absolute top-4 right-4 z-10">
+                <button 
+                  onClick={() => setIsEditModalOpen(true)}
+                  className="flex items-center gap-2 px-3 py-2 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm text-gray-800 dark:text-gray-200 rounded-lg shadow-md hover:bg-white dark:hover:bg-gray-900 transition-colors"
+                >
+                    <PencilIcon className="h-4 w-4" />
+                    <span className="text-sm font-medium">Chỉnh sửa Banner</span>
+                </button>
+             </div>
+           )}
+
           <div className="mx-auto max-w-2xl py-32 sm:py-48 lg:py-56">
             <div className="text-center">
-              <h1 className="text-4xl font-bold tracking-tight text-white sm:text-6xl">Bộ Sưu Tập Thời Trang Cho Thuê</h1>
-              <p className="mt-6 text-lg leading-8 text-gray-300">Khám phá những bộ trang phục tuyệt đẹp cho mọi dịp đặc biệt. Phong cách, tiện lợi và đẳng cấp.</p>
+              <h1 className="text-4xl font-bold tracking-tight text-white sm:text-6xl">{heroTitle}</h1>
+              <p className="mt-6 text-lg leading-8 text-gray-300">{heroSubtitle}</p>
             </div>
           </div>
         </div>
@@ -111,6 +140,14 @@ export const HomePage: React.FC<HomePageProps> = ({ clothingItems, rentedItemCou
             )}
         </div>
       </div>
+      {user?.role === 'admin' && (
+          <HeroEditModal
+              isOpen={isEditModalOpen}
+              onClose={() => setIsEditModalOpen(false)}
+              config={siteConfig}
+              onSave={handleSaveConfig}
+          />
+      )}
     </PublicLayout>
   );
 };

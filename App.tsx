@@ -6,7 +6,7 @@ import { CustomersPage } from './components/CustomersPage';
 import { RentalsPage } from './components/RentalsPage';
 import * as db from './database';
 import { isSupabaseConfigured } from './database';
-import type { View, ClothingItem, Customer, Rental } from './types';
+import type { View, ClothingItem, Customer, Rental, SiteConfig } from './types';
 import { MenuIcon } from './components/icons/MenuIcon';
 import { differenceInCalendarDays } from 'date-fns';
 import { parseISO } from 'date-fns/parseISO';
@@ -156,11 +156,13 @@ const AdminPortal: React.FC<{
 
 // Component chính của ứng dụng, xử lý routing
 const AppContent: React.FC = () => {
+    const { user } = useAuth();
     const [route, setRoute] = useState(window.location.hash);
     
     const [clothingItems, setClothingItems] = useState<ClothingItem[]>([]);
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [rentals, setRentals] = useState<Rental[]>([]);
+    const [siteConfig, setSiteConfig] = useState<SiteConfig>({});
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -173,14 +175,16 @@ const AppContent: React.FC = () => {
       setIsLoading(true);
       setError(null);
       try {
-          const [itemsData, customersData, rentalsData] = await Promise.all([
+          const [itemsData, customersData, rentalsData, configData] = await Promise.all([
               db.getClothingItems(),
               db.getCustomers(),
               db.getRentals(),
+              db.getSiteConfig(),
           ]);
           setClothingItems(itemsData);
           setCustomers(customersData);
           setRentals(rentalsData);
+          setSiteConfig(configData);
       } catch (err: any) {
           console.error("Failed to fetch data:", err);
           setError(`Không thể tải dữ liệu từ server. Vui lòng kiểm tra lại cấu hình Supabase và kết nối mạng. Lỗi: ${err.message}`);
@@ -188,6 +192,16 @@ const AppContent: React.FC = () => {
           setIsLoading(false);
       }
     }, []);
+    
+    const handleUpdateSiteConfig = async (configs: { key: string; value: string }[]) => {
+        try {
+            await db.updateSiteConfig(configs);
+            await fetchData();
+        } catch (err: any) {
+            console.error("Failed to update site config:", err);
+            setError(`Không thể cập nhật cấu hình. Lỗi: ${err.message}`);
+        }
+    };
 
     useEffect(() => {
       fetchData();
@@ -245,7 +259,7 @@ const AppContent: React.FC = () => {
         return <AdminPortal clothingItems={clothingItems} customers={customers} rentals={rentals} fetchData={fetchData} />;
     }
 
-    return <HomePage clothingItems={clothingItems} rentedItemCounts={rentedItemCounts} />;
+    return <HomePage clothingItems={clothingItems} rentedItemCounts={rentedItemCounts} user={user} siteConfig={siteConfig} onUpdateConfig={handleUpdateSiteConfig} />;
 }
 
 const App: React.FC = () => {

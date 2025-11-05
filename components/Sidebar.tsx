@@ -51,6 +51,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ view, setView, isOpen, setOpen
     window.location.hash = '#/';
   };
 
+  const handleHomeNav = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    window.location.hash = '/';
+  };
+
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: <DashboardIcon /> },
     { id: 'clothing', label: 'Quần Áo', icon: <ClothingIcon /> },
@@ -64,7 +69,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ view, setView, isOpen, setOpen
       <div className={`fixed md:relative inset-y-0 left-0 transform ${isOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 transition-transform duration-300 ease-in-out bg-primary-900 text-white w-64 space-y-6 py-7 px-2 z-30 flex flex-col justify-between`}>
           <div>
             <div className="flex items-center justify-between px-4 mb-10">
-              <a href="#/" className="text-2xl font-extrabold text-white hover:opacity-80 transition-opacity">Thuê Đồ UI</a>
+              <a href="#/" onClick={handleHomeNav} className="text-2xl font-extrabold text-white hover:opacity-80 transition-opacity">Thuê Đồ UI</a>
                <button onClick={() => setOpen(false)} className="md:hidden p-1 rounded-md hover:bg-primary-700">
                  <XIcon />
                </button>
