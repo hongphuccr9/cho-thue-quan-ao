@@ -1,4 +1,3 @@
-
 import React from 'react';
 import type { View } from '../types';
 import { DashboardIcon } from './icons/DashboardIcon';
@@ -47,6 +46,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ view, setView, isOpen, setOpen
     }
   };
 
+  const handleLogout = () => {
+    logout();
+    window.location.hash = '#/';
+  };
+
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: <DashboardIcon /> },
     { id: 'clothing', label: 'Quần Áo', icon: <ClothingIcon /> },
@@ -60,7 +64,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ view, setView, isOpen, setOpen
       <div className={`fixed md:relative inset-y-0 left-0 transform ${isOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 transition-transform duration-300 ease-in-out bg-primary-900 text-white w-64 space-y-6 py-7 px-2 z-30 flex flex-col justify-between`}>
           <div>
             <div className="flex items-center justify-between px-4 mb-10">
-              <h2 className="text-2xl font-extrabold text-white">Thuê Đồ UI</h2>
+              <a href="#/" className="text-2xl font-extrabold text-white hover:opacity-80 transition-opacity">Thuê Đồ UI</a>
                <button onClick={() => setOpen(false)} className="md:hidden p-1 rounded-md hover:bg-primary-700">
                  <XIcon />
                </button>
@@ -87,7 +91,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ view, setView, isOpen, setOpen
                 icon={<LogoutIcon />}
                 label="Đăng xuất"
                 isActive={false}
-                onClick={logout}
+                onClick={handleLogout}
              />
              <div className="px-4 py-2 mt-4 text-center text-xs text-gray-500">
                 © {new Date().getFullYear()} Cửa Hàng Thuê Đồ

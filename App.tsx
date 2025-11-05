@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './components/Dashboard';
 import { ClothingPage } from './components/ClothingPage';
@@ -14,6 +13,7 @@ import { parseISO } from 'date-fns/parseISO';
 import { AuthProvider, useAuth } from './components/AuthContext';
 import { LoginPage } from './components/LoginPage';
 import type { User } from './components/AuthContext';
+import { HomePage } from './components/HomePage';
 
 const viewTitles: Record<View, string> = {
   dashboard: 'Dashboard',
@@ -22,46 +22,18 @@ const viewTitles: Record<View, string> = {
   rentals: 'Quản Lý Lượt Thuê'
 };
 
-const MainLayout: React.FC<{user: User}> = ({ user }) => {
-  const [view, setView] = React.useState<View>('dashboard');
-  const [clothingItems, setClothingItems] = React.useState<ClothingItem[]>([]);
-  const [customers, setCustomers] = React.useState<Customer[]>([]);
-  const [rentals, setRentals] = React.useState<Rental[]>([]);
-  const [isSidebarOpen, setSidebarOpen] = React.useState(false);
-  const [isLoading, setIsLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
+// Component con cho toàn bộ phần quản trị (sau khi đăng nhập)
+const AdminApp: React.FC<{
+    clothingItems: ClothingItem[];
+    customers: Customer[];
+    rentals: Rental[];
+    fetchData: () => void;
+    user: User;
+}> = ({ clothingItems, customers, rentals, fetchData, user }) => {
+  const [view, setView] = useState<View>('dashboard');
+  const [isSidebarOpen, setSidebarOpen] = useState(false);
 
-  const fetchData = React.useCallback(async () => {
-    if (!isSupabaseConfigured) {
-        setError('Vui lòng cấu hình thông tin Supabase trong file `database.ts` để kết nối với cơ sở dữ liệu của bạn.');
-        setIsLoading(false);
-        return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-    try {
-        const [itemsData, customersData, rentalsData] = await Promise.all([
-            db.getClothingItems(),
-            db.getCustomers(),
-            db.getRentals(),
-        ]);
-        setClothingItems(itemsData);
-        setCustomers(customersData);
-        setRentals(rentalsData);
-    } catch (err: any) {
-        console.error("Failed to fetch data:", err);
-        setError(`Không thể tải dữ liệu từ server. Vui lòng kiểm tra lại cấu hình Supabase và kết nối mạng. Lỗi: ${err.message}`);
-    } finally {
-        setIsLoading(false);
-    }
-  }, []);
-
-  React.useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-  
-  const itemsWithRentalHistory = React.useMemo(() => {
+  const itemsWithRentalHistory = useMemo(() => {
     const itemIds = new Set<number>();
     rentals.forEach(rental => {
         rental.rentedItems.forEach(({ itemId }) => {
@@ -71,9 +43,9 @@ const MainLayout: React.FC<{user: User}> = ({ user }) => {
     return itemIds;
   }, [rentals]);
 
-  const activeRentals = React.useMemo(() => rentals.filter(r => !r.returnDate), [rentals]);
+  const activeRentals = useMemo(() => rentals.filter(r => !r.returnDate), [rentals]);
   
-  const rentedItemCounts = React.useMemo(() => {
+  const rentedItemCounts = useMemo(() => {
     const counts = new Map<number, number>();
     activeRentals.forEach(rental => {
         rental.rentedItems.forEach(({ itemId, quantity }) => {
@@ -83,52 +55,21 @@ const MainLayout: React.FC<{user: User}> = ({ user }) => {
     return counts;
   }, [activeRentals]);
 
-  const addClothingItem = async (item: Omit<ClothingItem, 'id'>) => {
-    const newItem = await db.addClothingItem(item);
-    setClothingItems(prev => [...prev, newItem]);
-  };
-  
-  const addMultipleClothingItems = async (items: Omit<ClothingItem, 'id'>[]) => {
-    if (items.length === 0) return;
-    const newItems = await db.addMultipleClothingItems(items);
-    setClothingItems(prev => [...prev, ...newItems]);
+  const handleDbAction = async (action: Promise<any>) => {
+      await action;
+      await fetchData();
   };
 
-  const updateClothingItem = async (itemToUpdate: ClothingItem) => {
-    const updatedItem = await db.updateClothingItem(itemToUpdate);
-    setClothingItems(prev => prev.map(item => item.id === updatedItem.id ? updatedItem : item));
-  };
-
-  const deleteClothingItem = async (itemId: number) => {
-    await db.deleteClothingItem(itemId);
-    setClothingItems(prev => prev.filter(item => item.id !== itemId));
-  };
-
-  const addCustomer = async (customer: Omit<Customer, 'id'>): Promise<Customer> => {
-    const newCustomer = await db.addCustomer(customer);
-    setCustomers(prev => [...prev, newCustomer].sort((a,b) => a.name.localeCompare(b.name)));
-    return newCustomer;
-  };
-
-  const updateCustomer = async (customerToUpdate: Customer) => {
-    const updatedCustomer = await db.updateCustomer(customerToUpdate);
-    setCustomers(prev => prev.map(customer => customer.id === updatedCustomer.id ? updatedCustomer : customer));
-  };
-
-  const deleteCustomer = async (customerId: number) => {
-    await db.deleteCustomer(customerId);
-    setCustomers(prev => prev.filter(customer => customer.id !== customerId));
-  };
-
-  const addRental = async (rental: Omit<Rental, 'id' | 'totalPrice'>) => {
-    const newRental = await db.addRental(rental);
-    setRentals(prev => [newRental, ...prev]);
-  };
-  
-  const updateRental = async (rentalToUpdate: Rental) => {
-    const updatedRentalFromDb = await db.updateRental(rentalToUpdate);
-    setRentals(prev => prev.map(r => r.id === rentalToUpdate.id ? updatedRentalFromDb : r));
-  };
+  const addClothingItem = (item: Omit<ClothingItem, 'id'>) => handleDbAction(db.addClothingItem(item));
+  const addMultipleClothingItems = (items: Omit<ClothingItem, 'id'>[]) => handleDbAction(db.addMultipleClothingItems(items));
+  const updateClothingItem = (itemToUpdate: ClothingItem) => handleDbAction(db.updateClothingItem(itemToUpdate));
+  const deleteClothingItem = (itemId: number) => handleDbAction(db.deleteClothingItem(itemId));
+  const addCustomer = (customer: Omit<Customer, 'id'>) => handleDbAction(db.addCustomer(customer));
+  const updateCustomer = (customerToUpdate: Customer) => handleDbAction(db.updateCustomer(customerToUpdate));
+  const deleteCustomer = (customerId: number) => handleDbAction(db.deleteCustomer(customerId));
+  const addRental = (rental: Omit<Rental, 'id' | 'totalPrice'>) => handleDbAction(db.addRental(rental));
+  const updateRental = (rentalToUpdate: Rental) => handleDbAction(db.updateRental(rentalToUpdate));
+  const deleteRental = (rentalId: number) => handleDbAction(db.deleteRental(rentalId));
 
   const returnRental = async (rentalId: number, surcharge: number = 0): Promise<Rental | undefined> => {
     const rentalToReturn = rentals.find(r => r.id === rentalId);
@@ -157,47 +98,13 @@ const MainLayout: React.FC<{user: User}> = ({ user }) => {
       surcharge: surcharge 
     };
     
-    const updatedRentalFromDb = await db.updateRental(updatedRentalData);
-    setRentals(prev => prev.map(r => r.id === rentalId ? updatedRentalFromDb : r));
-    return updatedRentalFromDb;
-  };
-
-  const deleteRental = async (rentalId: number) => {
-    await db.deleteRental(rentalId);
-    setRentals(prev => prev.filter(r => r.id !== rentalId));
+    await handleDbAction(db.updateRental(updatedRentalData));
+    // Refetch and find the updated one to return
+    const refreshedRentals = await db.getRentals();
+    return refreshedRentals.find(r => r.id === rentalId);
   };
   
   const renderView = () => {
-    if (isLoading) {
-      return (
-        <div className="flex justify-center items-center h-full">
-          <p className="text-lg text-gray-500 dark:text-gray-400">Đang tải dữ liệu từ server...</p>
-        </div>
-      );
-    }
-    
-    if (error) {
-       return (
-        <div className="flex justify-center items-center h-full p-4">
-          <div className="bg-red-100 dark:bg-red-900/20 border border-red-400 dark:border-red-500/50 text-red-700 dark:text-red-300 px-6 py-4 rounded-lg relative max-w-2xl text-center shadow-lg" role="alert">
-            <strong className="font-bold block text-lg mb-2">Đã xảy ra lỗi kết nối!</strong>
-            <span className="block">{error}</span>
-            {error.includes('cấu hình') && (
-                 <div className="mt-4 text-left bg-gray-100 dark:bg-gray-800 p-3 rounded-md text-sm text-gray-700 dark:text-gray-300">
-                    <p className="font-semibold">Để khắc phục:</p>
-                    <ol className="list-decimal list-inside mt-1 space-y-1">
-                        <li>Mở file <code className="bg-gray-200 dark:bg-gray-700 px-1 py-0.5 rounded">database.ts</code> trong trình chỉnh sửa.</li>
-                        <li>Tìm các biến <code className="bg-gray-200 dark:bg-gray-700 px-1 py-0.5 rounded">supabaseUrl</code> và <code className="bg-gray-200 dark:bg-gray-700 px-1 py-0.5 rounded">supabaseAnonKey</code>.</li>
-                        <li>Thay thế các giá trị placeholder bằng thông tin Project URL và Anon Key từ trang cài đặt Supabase của bạn.</li>
-                        <li>Lưu file và làm mới lại trang này.</li>
-                    </ol>
-                </div>
-            )}
-          </div>
-        </div>
-      );
-    }
-
     switch (view) {
       case 'dashboard':
         return <Dashboard clothingItems={clothingItems} customers={customers} rentals={rentals} rentedItemCounts={rentedItemCounts} setView={setView} />;
@@ -233,15 +140,112 @@ const MainLayout: React.FC<{user: User}> = ({ user }) => {
   );
 };
 
-
-const AppContent: React.FC = () => {
+// Component xử lý logic đăng nhập và hiển thị trang quản trị
+const AdminPortal: React.FC<{
+    clothingItems: ClothingItem[];
+    customers: Customer[];
+    rentals: Rental[];
+    fetchData: () => void;
+}> = (props) => {
     const { user } = useAuth();
-
     if (!user) {
         return <LoginPage />;
     }
+    return <AdminApp {...props} user={user} />;
+}
 
-    return <MainLayout user={user} />;
+// Component chính của ứng dụng, xử lý routing
+const AppContent: React.FC = () => {
+    const [route, setRoute] = useState(window.location.hash);
+    
+    const [clothingItems, setClothingItems] = useState<ClothingItem[]>([]);
+    const [customers, setCustomers] = useState<Customer[]>([]);
+    const [rentals, setRentals] = useState<Rental[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    const fetchData = useCallback(async () => {
+      if (!isSupabaseConfigured) {
+          setError('Vui lòng cấu hình thông tin Supabase trong file `database.ts` để kết nối với cơ sở dữ liệu của bạn.');
+          setIsLoading(false);
+          return;
+      }
+      setIsLoading(true);
+      setError(null);
+      try {
+          const [itemsData, customersData, rentalsData] = await Promise.all([
+              db.getClothingItems(),
+              db.getCustomers(),
+              db.getRentals(),
+          ]);
+          setClothingItems(itemsData);
+          setCustomers(customersData);
+          setRentals(rentalsData);
+      } catch (err: any) {
+          console.error("Failed to fetch data:", err);
+          setError(`Không thể tải dữ liệu từ server. Vui lòng kiểm tra lại cấu hình Supabase và kết nối mạng. Lỗi: ${err.message}`);
+      } finally {
+          setIsLoading(false);
+      }
+    }, []);
+
+    useEffect(() => {
+      fetchData();
+      const handleHashChange = () => {
+        setRoute(window.location.hash);
+      };
+      window.addEventListener('hashchange', handleHashChange);
+      return () => {
+        window.removeEventListener('hashchange', handleHashChange);
+      };
+    }, [fetchData]);
+
+    const activeRentals = useMemo(() => rentals.filter(r => !r.returnDate), [rentals]);
+    const rentedItemCounts = useMemo(() => {
+        const counts = new Map<number, number>();
+        activeRentals.forEach(rental => {
+            rental.rentedItems.forEach(({ itemId, quantity }) => {
+                counts.set(itemId, (counts.get(itemId) || 0) + quantity);
+            });
+        });
+        return counts;
+    }, [activeRentals]);
+
+    if (isLoading) {
+      return (
+        <div className="flex justify-center items-center h-screen bg-gray-100 dark:bg-gray-900">
+          <p className="text-lg text-gray-500 dark:text-gray-400">Đang tải dữ liệu...</p>
+        </div>
+      );
+    }
+    
+    if (error) {
+       return (
+        <div className="flex justify-center items-center h-screen p-4 bg-gray-100 dark:bg-gray-900">
+          <div className="bg-red-100 dark:bg-red-900/20 border border-red-400 dark:border-red-500/50 text-red-700 dark:text-red-300 px-6 py-4 rounded-lg relative max-w-2xl text-center shadow-lg" role="alert">
+            <strong className="font-bold block text-lg mb-2">Đã xảy ra lỗi kết nối!</strong>
+            <span className="block">{error}</span>
+            {error.includes('cấu hình') && (
+                 <div className="mt-4 text-left bg-gray-100 dark:bg-gray-800 p-3 rounded-md text-sm text-gray-700 dark:text-gray-300">
+                    <p className="font-semibold">Để khắc phục:</p>
+                    <ol className="list-decimal list-inside mt-1 space-y-1">
+                        <li>Mở file <code className="bg-gray-200 dark:bg-gray-700 px-1 py-0.5 rounded">database.ts</code> trong trình chỉnh sửa.</li>
+                        <li>Tìm các biến <code className="bg-gray-200 dark:bg-gray-700 px-1 py-0.5 rounded">supabaseUrl</code> và <code className="bg-gray-200 dark:bg-gray-700 px-1 py-0.5 rounded">supabaseAnonKey</code>.</li>
+                        <li>Thay thế các giá trị placeholder bằng thông tin Project URL và Anon Key từ trang cài đặt Supabase của bạn.</li>
+                        <li>Lưu file và làm mới lại trang này.</li>
+                    </ol>
+                </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    if (route.startsWith('#/admin')) {
+        return <AdminPortal clothingItems={clothingItems} customers={customers} rentals={rentals} fetchData={fetchData} />;
+    }
+
+    return <HomePage clothingItems={clothingItems} rentedItemCounts={rentedItemCounts} />;
 }
 
 const App: React.FC = () => {
