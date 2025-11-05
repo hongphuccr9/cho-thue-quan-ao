@@ -1,10 +1,8 @@
-
 import React from 'react';
 
 interface CardProps {
   children: React.ReactNode;
   className?: string;
-  // FIX: Added an optional `style` prop to allow passing inline styles for animations and other use cases.
   style?: React.CSSProperties;
 }
 

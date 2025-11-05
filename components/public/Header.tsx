@@ -24,7 +24,7 @@ export const Header: React.FC = () => {
               onClick={(e) => handleNav(e, '/admin')}
               className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
             >
-              Quản trị viên
+              Đăng nhập
             </a>
           </div>
         </div>
