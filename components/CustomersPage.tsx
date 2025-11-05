@@ -7,11 +7,11 @@ import { exportToCSV } from '../utils/export';
 import { ExportIcon } from './icons/ExportIcon';
 import { CustomerDetailModal } from './CustomerDetailModal';
 import { useAuth } from './AuthContext';
-import { SearchIcon } from './icons/SearchIcon';
 
 interface CustomersPageProps {
   customers: Customer[];
   addCustomer: (customer: Omit<Customer, 'id'>) => Promise<Customer>;
+  // FIX: Updated prop type to match the return value from the database operation.
   updateCustomer: (customer: Customer) => Promise<Customer>;
   deleteCustomer: (customerId: number) => Promise<void>;
   rentals: Rental[];
@@ -42,25 +42,9 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({ customers, addCust
   const initialEditFormState = { name: '', phone: '', address: '' };
   const [editForm, setEditForm] = useState(initialEditFormState);
   const { user } = useAuth();
-  
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setIsMounted(true), 100);
-    return () => clearTimeout(timer);
-  }, []);
 
   const customersWithRentals = useMemo(() => {
     return new Set(rentals.map(r => r.customerId));
-  }, [rentals]);
-  
-  const customerRentalCounts = useMemo(() => {
-    const counts = new Map<number, number>();
-    rentals.forEach(rental => {
-        counts.set(rental.customerId, (counts.get(rental.customerId) || 0) + 1);
-    });
-    return counts;
   }, [rentals]);
 
   useEffect(() => {
@@ -74,15 +58,6 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({ customers, addCust
       setEditForm(initialEditFormState);
     }
   }, [editingCustomer]);
-  
-  const filteredCustomers = useMemo(() => {
-    const lowercasedTerm = searchTerm.toLowerCase();
-    return customers.filter(customer => 
-        customer.name.toLowerCase().includes(lowercasedTerm) ||
-        customer.phone.toLowerCase().includes(lowercasedTerm) ||
-        customer.address.toLowerCase().includes(lowercasedTerm)
-    ).sort((a,b) => a.name.localeCompare(b.name));
-  }, [customers, searchTerm]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -131,6 +106,7 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({ customers, addCust
 
   const handleDeleteConfirm = async () => {
     if (customerToDelete) {
+      // Kiểm tra chủ động để cung cấp trải nghiệm người dùng tốt hơn.
       const hasRentals = rentals.some(r => r.customerId === customerToDelete.id);
       if (hasRentals) {
         setDeleteError(`Không thể xóa khách hàng "${customerToDelete.name}" vì họ đã có lịch sử thuê đồ.`);
@@ -142,6 +118,7 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({ customers, addCust
         closeDeleteModal();
       } catch (error: any) {
         console.error("Delete customer error:", error);
+        // Hiển thị thông báo lỗi cụ thể hơn từ lớp cơ sở dữ liệu.
         setDeleteError(`Lỗi: ${error.message}`);
       }
     }
@@ -170,94 +147,83 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({ customers, addCust
     <div>
       <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
         <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Khách Hàng</h1>
-        <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap justify-end">
-            <div className="relative flex-grow sm:flex-grow-0 sm:w-64">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <SearchIcon className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                    type="text"
-                    placeholder="Tìm kiếm khách hàng..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md leading-5 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-                />
-            </div>
+        <div className="flex items-center gap-4">
             <button
               onClick={handleExport}
               className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition duration-200 text-sm font-medium"
             >
               <ExportIcon />
-              <span className="hidden sm:inline">Xuất CSV</span>
+              Xuất CSV
             </button>
             {user?.role === 'admin' && (
               <button
                 onClick={() => setIsModalOpen(true)}
                 className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition duration-200"
               >
-                Thêm Mới
+                Thêm Khách Hàng Mới
               </button>
             )}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {filteredCustomers.map((customer, index) => {
-          const hasRentals = customersWithRentals.has(customer.id);
-          const rentalCount = customerRentalCounts.get(customer.id) || 0;
-          return (
-            <Card 
-              key={customer.id} 
-              className={`
-                !p-0 flex flex-col text-center items-center
-                transform transition-all duration-300 ease-out
-                hover:-translate-y-1 hover:shadow-xl
-                ${isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}
-              `}
-              style={{ transitionDelay: `${index * 50}ms` }}
-            >
-              <div className="p-6 flex-grow w-full flex flex-col items-center">
-                  <UserCircleIcon className="h-16 w-16 text-gray-300 dark:text-gray-600 mb-4"/>
-                  <h3 className="font-bold text-lg text-gray-800 dark:text-white">{customer.name}</h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">{customer.phone}</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 flex-grow">{customer.address}</p>
-                  <div className="mt-4 bg-primary-50 dark:bg-primary-900/40 text-primary-700 dark:text-primary-200 px-3 py-1 rounded-full text-sm font-semibold">
-                    {rentalCount} lượt thuê
-                  </div>
-              </div>
-              <div className="border-t dark:border-gray-700 w-full p-2 flex justify-around items-center bg-gray-50/50 dark:bg-gray-800/50">
-                  <button onClick={() => setSelectedCustomer(customer)} className="text-sm font-medium text-primary-600 dark:text-primary-400 hover:underline px-3 py-1.5 rounded-md hover:bg-primary-100 dark:hover:bg-gray-700 transition-colors">
-                      Xem chi tiết
-                  </button>
-                  {user?.role === 'admin' && (
-                    <div className="flex items-center">
-                      <button
-                          onClick={() => setEditingCustomer(customer)}
-                          className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 px-3 py-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-                      >
-                          Sửa
-                      </button>
-                      <button
-                          onClick={() => setCustomerToDelete(customer)}
-                          disabled={hasRentals}
-                          title={hasRentals ? "Không thể xóa khách hàng có lịch sử thuê" : "Xóa khách hàng"}
-                          className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 px-3 py-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-gray-600"
-                      >
-                          Xóa
-                      </button>
-                    </div>
-                  )}
-              </div>
-            </Card>
-          )
-        })}
-      </div>
-      {filteredCustomers.length === 0 && (
-          <div className="text-center py-16 col-span-full">
-              <p className="text-gray-600 dark:text-gray-300 text-lg">Không tìm thấy khách hàng nào.</p>
-          </div>
-      )}
-
+      <Card>
+        <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-700">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Tên</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Số Điện Thoại</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Địa Chỉ</th>
+                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Lượt thuê</th>
+                   <th className="relative px-6 py-3"><span className="sr-only">Hành động</span></th>
+                </tr>
+              </thead>
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                {customers.map(customer => {
+                  const hasRentals = customersWithRentals.has(customer.id);
+                  return (
+                  <tr key={customer.id} onClick={() => setSelectedCustomer(customer)} className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-150">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                            <UserCircleIcon className="h-8 w-8 text-gray-400 mr-3"/>
+                            <div className="text-sm font-medium text-gray-900 dark:text-white">{customer.name}</div>
+                        </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{customer.phone}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{customer.address}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300 text-center">{customerRentals(customer.id).length}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      {user?.role === 'admin' && (
+                        <div className="flex items-center justify-end gap-x-4">
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditingCustomer(customer);
+                                }}
+                                className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-200 font-semibold"
+                            >
+                                Sửa
+                            </button>
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setCustomerToDelete(customer);
+                                }}
+                                disabled={hasRentals}
+                                title={hasRentals ? "Không thể xóa khách hàng có lịch sử thuê" : "Xóa khách hàng"}
+                                className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-200 font-semibold disabled:text-gray-400 dark:disabled:text-gray-500 disabled:cursor-not-allowed disabled:hover:text-gray-400"
+                            >
+                                Xóa
+                            </button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                )})}
+              </tbody>
+            </table>
+        </div>
+      </Card>
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Thêm Khách Hàng Mới">
         <form onSubmit={handleSubmit} className="space-y-4">

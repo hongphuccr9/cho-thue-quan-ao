@@ -47,7 +47,7 @@ export const HomePage: React.FC<HomePageProps> = ({ clothingItems, rentedItemCou
   const heroImageUrl = siteConfig.hero_image_url || 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?q=80&w=2070&auto=format&fit=crop';
 
   return (
-    <PublicLayout siteConfig={siteConfig}>
+    <PublicLayout>
       <div className="bg-white dark:bg-gray-900">
         {/* Hero Section */}
         <div className="relative isolate px-6 pt-14 lg:px-8">

@@ -209,17 +209,12 @@ export const deleteRental = async (id: number): Promise<void> => {
     USING (true)
     WITH CHECK (true);
 
-    -- (Tùy chọn) Thêm dữ liệu ban đầu cho banner và liên hệ
+    -- (Tùy chọn) Thêm dữ liệu ban đầu cho banner
     INSERT INTO public.site_config (key, value)
     VALUES
       ('hero_title', 'Bộ Sưu Tập Thời Trang Cho Thuê'),
       ('hero_subtitle', 'Khám phá những bộ trang phục tuyệt đẹp cho mọi dịp đặc biệt. Phong cách, tiện lợi và đẳng cấp.'),
-      ('hero_image_url', 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?q=80&w=2070&auto=format&fit=crop'),
-      ('contact_zalo_phone', '0975475789'),
-      ('contact_zalo_name', 'Cộng Studio'),
-      ('contact_hotline_phone', '0975475789'),
-      ('contact_zalo_icon_url', ''),
-      ('contact_hotline_icon_url', '')
+      ('hero_image_url', 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?q=80&w=2070&auto=format&fit=crop')
     ON CONFLICT (key) DO NOTHING;
     
     ---
