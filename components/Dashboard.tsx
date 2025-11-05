@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import type { ClothingItem, Customer, Rental, View } from '../types';
 import { Card } from './shared/Card';
@@ -118,10 +119,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ clothingItems, customers, 
     .filter(item => (rentedItemCounts.get(item.id) || 0) > 0);
 
   const stats = [
-    { title: 'Tổng Số Loại Đồ', value: clothingItems.length, icon: <TotalItemsIcon />, color: 'text-blue-600 dark:text-blue-300', bgColor: 'bg-blue-100 dark:bg-blue-900/30' },
+    { title: 'Tổng Số Loại Đồ', value: clothingItems.length, icon: <TotalItemsIcon />, color: 'text-blue-600 dark:text-blue-300', bgColor: 'bg-blue-100 dark:bg-blue-900/30', navTarget: 'clothing' as const },
     { title: 'Tổng Số Lượng Trong Kho', value: totalItemsStock, icon: <StockIcon />, color: 'text-teal-600 dark:text-teal-300', bgColor: 'bg-teal-100 dark:bg-teal-900/30', navTarget: 'clothing' as const },
     { title: 'Đang Cho Thuê', value: activeRentals.length, icon: <RentedIcon />, color: 'text-green-600 dark:text-green-300', bgColor: 'bg-green-100 dark:bg-green-900/30', navTarget: 'rentals' as const },
-    { title: 'Quá Hạn Trả', value: overdueRentals.length, icon: <OverdueIcon />, color: 'text-red-600 dark:text-red-300', bgColor: 'bg-red-100 dark:bg-red-900/30' },
+    { title: 'Quá Hạn Trả', value: overdueRentals.length, icon: <OverdueIcon />, color: 'text-red-600 dark:text-red-300', bgColor: 'bg-red-100 dark:bg-red-900/30', navTarget: 'rentals' as const },
   ];
   
   const clothingItemMap = new Map<number, ClothingItem>(clothingItems.map(item => [item.id, item]));
@@ -207,7 +208,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ clothingItems, customers, 
 
   return (
     <div className="space-y-8">
-      <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Bảng Điều Khiển</h1>
+      <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Dashboard</h1>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, index) => {

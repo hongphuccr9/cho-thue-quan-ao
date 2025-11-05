@@ -237,11 +237,13 @@ export const RentalsPage: React.FC<RentalsPageProps> = ({ rentals, customers, cl
       
       const combined = new Map<number, ClothingItem>();
       
-      // FIX: Use for...of loop to avoid TypeScript type inference issues with Set.forEach.
-      for (const id of itemsInThisRental) {
+      // FIX: The type of `id` was being inferred as `unknown` when iterating the Set,
+      // causing a type error. Replaced the for...of loop with forEach and explicitly
+      // typed `id` as a number to resolve the issue.
+      itemsInThisRental.forEach((id: number) => {
         const item = clothingMap.get(id);
         if (item) combined.set(id, item);
-      }
+      });
       
       availableNowItems.forEach(item => {
         combined.set(item.id, item);

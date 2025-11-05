@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './components/Dashboard';
@@ -15,7 +16,7 @@ import { LoginPage } from './components/LoginPage';
 import type { User } from './components/AuthContext';
 
 const viewTitles: Record<View, string> = {
-  dashboard: 'Bảng Điều Khiển',
+  dashboard: 'Dashboard',
   clothing: 'Quản Lý Quần Áo',
   customers: 'Khách Hàng',
   rentals: 'Quản Lý Lượt Thuê'

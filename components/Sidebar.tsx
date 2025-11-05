@@ -1,3 +1,4 @@
+
 import React from 'react';
 import type { View } from '../types';
 import { DashboardIcon } from './icons/DashboardIcon';
@@ -47,7 +48,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ view, setView, isOpen, setOpen
   };
 
   const navItems = [
-    { id: 'dashboard', label: 'Bảng Điều Khiển', icon: <DashboardIcon /> },
+    { id: 'dashboard', label: 'Dashboard', icon: <DashboardIcon /> },
     { id: 'clothing', label: 'Quần Áo', icon: <ClothingIcon /> },
     { id: 'customers', label: 'Khách Hàng', icon: <CustomerIcon /> },
     { id: 'rentals', label: 'Lượt Thuê', icon: <RentalIcon /> },

@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, ReactNode, useCallback } from 'react';
 
 const ADMIN_PASSWORD = "Tam@0707";
-const USER_PASSWORD = "Tam@1234";
+const USER_PASSWORD = "1234567";
 const AUTH_STATE_KEY = 'clothingRentalAuth';
 
 export type User = {
