@@ -7,7 +7,7 @@ import type { User } from './AuthContext';
 import { HeroEditModal } from './HeroEditModal';
 import { PencilIcon } from './icons/PencilIcon';
 
-const TYPING_SPEED = 50; // ms
+const TYPING_SPEED = 20; // ms
 
 interface HomePageProps {
   clothingItems: ClothingItem[];
