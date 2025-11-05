@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import type { ClothingItem, SiteConfig } from '../types';
 import { PublicLayout } from './public/PublicLayout';
 import { Card } from './shared/Card';
@@ -6,6 +6,8 @@ import { SearchIcon } from './icons/SearchIcon';
 import type { User } from './AuthContext';
 import { HeroEditModal } from './HeroEditModal';
 import { PencilIcon } from './icons/PencilIcon';
+
+const TYPING_SPEED = 50; // ms
 
 interface HomePageProps {
   clothingItems: ClothingItem[];
@@ -19,6 +21,30 @@ export const HomePage: React.FC<HomePageProps> = ({ clothingItems, rentedItemCou
   const [searchTerm, setSearchTerm] = useState('');
   const [availabilityFilter, setAvailabilityFilter] = useState<'all' | 'available'>('all');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+  
+  const heroTitle = siteConfig.hero_title || 'Bộ Sưu Tập Thời Trang Cho Thuê';
+  const heroSubtitle = siteConfig.hero_subtitle || 'Khám phá những bộ trang phục tuyệt đẹp cho mọi dịp đặc biệt. Phong cách, tiện lợi và đẳng cấp.';
+  const heroImageUrl = siteConfig.hero_image_url || 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?q=80&w=2070&auto=format&fit=crop';
+  
+  const [typedSubtitle, setTypedSubtitle] = useState('');
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsMounted(true), 100);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (isMounted) {
+      if (typedSubtitle.length < heroSubtitle.length) {
+        const timeoutId = setTimeout(() => {
+          setTypedSubtitle(heroSubtitle.slice(0, typedSubtitle.length + 1));
+        }, TYPING_SPEED);
+        return () => clearTimeout(timeoutId);
+      }
+    }
+  }, [heroSubtitle, typedSubtitle, isMounted]);
+
 
   const filteredItems = useMemo(() => {
     return clothingItems
@@ -42,17 +68,13 @@ export const HomePage: React.FC<HomePageProps> = ({ clothingItems, rentedItemCou
       setIsEditModalOpen(false);
   };
 
-  const heroTitle = siteConfig.hero_title || 'Bộ Sưu Tập Thời Trang Cho Thuê';
-  const heroSubtitle = siteConfig.hero_subtitle || 'Khám phá những bộ trang phục tuyệt đẹp cho mọi dịp đặc biệt. Phong cách, tiện lợi và đẳng cấp.';
-  const heroImageUrl = siteConfig.hero_image_url || 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?q=80&w=2070&auto=format&fit=crop';
-
   return (
-    <PublicLayout>
+    <PublicLayout siteConfig={siteConfig}>
       <div className="bg-white dark:bg-gray-900">
         {/* Hero Section */}
         <div className="relative isolate px-6 pt-14 lg:px-8">
            <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ zIndex: -1, backgroundImage: `url('${heroImageUrl}')` }}></div>
-           <div className="absolute inset-0 bg-black/50" style={{ zIndex: -1 }}></div>
+           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent" style={{ zIndex: -1 }}></div>
            
            {user?.role === 'admin' && (
              <div className="absolute top-4 right-4 z-10">
@@ -67,9 +89,16 @@ export const HomePage: React.FC<HomePageProps> = ({ clothingItems, rentedItemCou
            )}
 
           <div className="mx-auto max-w-2xl py-32 sm:py-48 lg:py-56">
-            <div className="text-center">
-              <h1 className="text-4xl font-bold tracking-tight text-white sm:text-6xl">{heroTitle}</h1>
-              <p className="mt-6 text-lg leading-8 text-gray-300">{heroSubtitle}</p>
+            <div className={`text-center transition-opacity duration-1000 ${isMounted ? 'opacity-100' : 'opacity-0'}`}>
+              <h1 className="text-4xl font-bold tracking-tight text-white sm:text-6xl bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+                {heroTitle}
+              </h1>
+              <p className="mt-6 text-lg leading-8 text-gray-300 min-h-[56px] sm:min-h-[64px]">
+                {typedSubtitle}
+                {typedSubtitle.length < heroSubtitle.length && (
+                  <span className="ml-1 animate-pulse">|</span>
+                )}
+              </p>
             </div>
           </div>
         </div>
@@ -101,12 +130,16 @@ export const HomePage: React.FC<HomePageProps> = ({ clothingItems, rentedItemCou
           </div>
 
           <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 xl:gap-x-8">
-            {filteredItems.map(item => {
+            {filteredItems.map((item, index) => {
               const availableCount = item.quantity - (rentedItemCounts.get(item.id) || 0);
               const isAvailable = availableCount > 0;
               return (
-                <div key={item.id} className="group">
-                  <Card className="!p-0 overflow-hidden w-full h-full flex flex-col">
+                <div 
+                  key={item.id} 
+                  className={`group transition-all duration-500 ease-out ${isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}
+                  style={{ transitionDelay: `${index * 100}ms` }}
+                >
+                  <Card className="!p-0 overflow-hidden w-full h-full flex flex-col transform transition-transform duration-300 hover:-translate-y-1 hover:shadow-xl">
                     <div className="aspect-h-1 aspect-w-1 w-full overflow-hidden xl:aspect-h-8 xl:aspect-w-7">
                       <img
                         src={item.imageUrl}

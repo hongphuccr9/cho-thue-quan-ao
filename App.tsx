@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './components/Dashboard';
@@ -15,6 +14,7 @@ import { AuthProvider, useAuth } from './components/AuthContext';
 import { LoginPage } from './components/LoginPage';
 import type { User } from './components/AuthContext';
 import { HomePage } from './components/HomePage';
+import { Spinner } from './components/shared/Spinner';
 
 const viewTitles: Record<View, string> = {
   dashboard: 'Dashboard',
@@ -236,7 +236,7 @@ const AppContent: React.FC = () => {
     if (isLoading) {
       return (
         <div className="flex justify-center items-center h-screen bg-gray-100 dark:bg-gray-900">
-          <p className="text-lg text-gray-500 dark:text-gray-400">Đang tải dữ liệu...</p>
+          <Spinner text="Đang tải dữ liệu, vui lòng chờ..." />
         </div>
       );
     }
